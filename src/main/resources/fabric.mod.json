@@ -1,0 +1,31 @@
+{
+	"schemaVersion": 1,
+	"id": "beaconrange",
+	"version": "1.0.0",
+	"name": "Beacon Range",
+	"description": "Visualizes beacon ranges with colored bounding boxes. Open the beacon GUI to pin/unpin ranges!",
+	"authors": [
+		"kclucas"
+	],
+	"contact": {
+		"sources": "https://github.com/yourusername/beaconrange"
+	},
+	"license": "MIT",
+	"icon": "assets/beaconrange/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.kclucas.beaconrange.client.BeaconRangeClient"
+		]
+	},
+	"mixins": [
+		"beaconrange.mixins.json",
+		"beaconrange.client.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.15.0",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
