@@ -16,3 +16,5 @@ A utility mod that visualizes the range of beacons with color-coded transparent 
 * Fabric Loader
 * Fabric API
 * Minecraft 1.21.1
+
+test
