@@ -20,6 +20,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import net.minecraft.text.ClickEvent;
+import net.minecraft.text.HoverEvent;
+import net.minecraft.text.MutableText;
+import net.minecraft.util.Formatting;
+
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
 
@@ -74,10 +79,18 @@ public class BeaconRangeClient implements ClientModInitializer {
 		});
 	}
 
-	// --- NEW COMMAND METHOD ---
+	private static Formatting getBeaconColor(int level) {
+		return switch (level) {
+			case 1 -> Formatting.AQUA;
+			case 2 -> Formatting.GREEN;
+			case 3 -> Formatting.GOLD;
+			case 4 -> Formatting.RED;
+			default -> Formatting.RED;
+		};
+	}
+
 	private void registerCommands(CommandDispatcher<FabricClientCommandSource> dispatcher) {
 		dispatcher.register(literal("beaconrange")
-				// 1. /beaconrange clear
 				.then(literal("clear")
 						.executes(context -> {
 							int count = pinnedBeacons.size();
@@ -86,7 +99,6 @@ public class BeaconRangeClient implements ClientModInitializer {
 							return 1;
 						})
 				)
-				// 2. /beaconrange remove [x,y,z]
 				.then(literal("remove")
 						.then(argument("coords", StringArgumentType.greedyString())
 								.suggests((context, builder) -> {
@@ -117,6 +129,68 @@ public class BeaconRangeClient implements ClientModInitializer {
 									return 1;
 								})
 						)
+				)
+				.then(literal("list")
+						.executes(context -> {
+							if (pinnedBeacons.isEmpty()) {
+								context.getSource().sendFeedback(Text.literal("§cNo beacons are currently pinned."));
+								return 1;
+							}
+
+							context.getSource().sendFeedback(Text.literal("§6--- Pinned Beacons ---"));
+
+							for (BlockPos pos : pinnedBeacons) {
+								String coordStr = pos.getX() + "," + pos.getY() + "," + pos.getZ();
+
+								int level = 0;
+								MinecraftClient client = MinecraftClient.getInstance();
+
+								if (client.world != null &&
+										client.world.getBlockEntity(pos) instanceof BeaconBlockEntity beacon) {
+									level = ((BeaconAccessor) beacon).getLevel();
+								}
+
+								Formatting levelColor = getBeaconColor(level);
+
+								MutableText line = Text.literal("- ")
+										.formatted(Formatting.GRAY)
+										.append(
+												Text.literal("Beacon")
+														.formatted(Formatting.WHITE)
+										)
+										.append(
+												Text.literal("(" + level + ")")
+														.formatted(levelColor)
+										)
+										.append(
+												Text.literal(" at ")
+														.formatted(Formatting.GRAY)
+										)
+										.append(
+												Text.literal(coordStr)
+														.formatted(Formatting.AQUA)
+										);
+
+								MutableText button = Text.literal(" [✖]")
+										.styled(style -> style
+												.withColor(Formatting.RED)
+												.withClickEvent(
+														new ClickEvent.RunCommand(
+																"/beaconrange remove " + coordStr
+														)
+												)
+												.withHoverEvent(
+														new HoverEvent.ShowText(
+																Text.literal("Click to unmark beacon")
+																		.formatted(Formatting.RED)
+														)
+												)
+										);
+
+								context.getSource().sendFeedback(line.append(button));
+							}
+							return 1;
+						})
 				)
 		);
 	}
