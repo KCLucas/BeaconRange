@@ -1,4 +1,4 @@
-# Beacon Range (Fabric 1.21.1)
+# Beacon Range (Fabric 1.21.11)
 
 A utility mod that visualizes the range of beacons with color-coded transparent boxes. Perfect for technical building and ensuring full base coverage.
 
