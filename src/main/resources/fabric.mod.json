@@ -1,14 +1,15 @@
 {
 	"schemaVersion": 1,
 	"id": "beaconrange",
-	"version": "1.0.1",
+	"version": "${version}",
 	"name": "Beacon Range",
-	"description": "Visualizes beacon ranges with colored bounding boxes. Open the beacon GUI to pin/unpin ranges!",
+	"description": "Look at a beacon to see exactly where its effects reach. Pin beacons to keep their range visible - saved per world.",
 	"authors": [
 		"kclucas"
 	],
 	"contact": {
-		"sources": "https://github.com/yourusername/beaconrange"
+		"sources": "https://github.com/KCLucas/BeaconRange",
+		"issues": "https://github.com/KCLucas/BeaconRange/issues"
 	},
 	"license": "MIT",
 	"icon": "assets/beaconrange/icon.png",
@@ -16,16 +17,21 @@
 	"entrypoints": {
 		"client": [
 			"com.kclucas.beaconrange.client.BeaconRangeClient"
+		],
+		"modmenu": [
+			"com.kclucas.beaconrange.client.ModMenuIntegration"
 		]
 	},
 	"mixins": [
-		"beaconrange.mixins.json",
-		"beaconrange.client.mixins.json"
+		"beaconrange.mixins.json"
 	],
 	"depends": {
-		"fabricloader": ">=0.15.0",
-		"minecraft": "~1.21.1",
+		"fabricloader": ">=0.19.2",
+		"minecraft": "~1.21.11",
 		"java": ">=21",
 		"fabric-api": "*"
+	},
+	"suggests": {
+		"modmenu": "*"
 	}
 }

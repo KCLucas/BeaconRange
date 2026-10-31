@@ -3,11 +3,8 @@
 	"package": "com.kclucas.beaconrange.client.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
-		"ExampleClientMixin",
-		"BeaconAccessor",
-		"HandledScreenAccessor",
-		"ScreenAccessor",
-		"BeaconScreenMixin"
+		"AbstractContainerScreenAccessor",
+		"BeaconBlockEntityAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1

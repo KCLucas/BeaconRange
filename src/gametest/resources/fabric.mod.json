@@ -1,0 +1,15 @@
+{
+	"schemaVersion": 1,
+	"id": "beaconrange-test",
+	"version": "1.0.0",
+	"name": "Beacon Range Test",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"com.kclucas.beaconrange.test.BeaconRangeClientTest"
+		]
+	},
+	"depends": {
+		"beaconrange": "*"
+	}
+}

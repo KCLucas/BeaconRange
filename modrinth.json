@@ -1,0 +1,15 @@
+{
+  "slug": "beacon-range",
+  "summary": "Look at a beacon to see exactly where its effects reach. Pin beacons to keep their range visible - saved per world.",
+  "categories": ["utility"],
+  "additional_categories": ["game-mechanics"],
+  "gallery": [
+    {"file": "images/levels.png", "title": "All four levels", "description": "Four pinned beacons, level 1 to 4, each in its own color", "featured": true},
+    {"file": "images/look.png", "title": "Look at a beacon", "description": "Level and range appear under the crosshair, even from far away"},
+    {"file": "images/pin-button.png", "title": "Pin range", "description": "The new button in the beacon screen"},
+    {"file": "images/inside.png", "title": "Line at your height", "description": "Shows where the range ends right where you stand"},
+    {"file": "images/full-height.png", "title": "Full height and beam color", "description": "Walls up to the sky, colored like the beam"},
+    {"file": "images/list.png", "title": "/beaconrange list", "description": "All pinned beacons with level, coordinates and distance"},
+    {"file": "images/settings.png", "title": "Settings", "description": "Colors, walls, edges and more"}
+  ]
+}

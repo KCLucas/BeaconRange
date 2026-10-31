@@ -1,35 +1,38 @@
-# Beacon Range (Fabric 1.21.11)
+# Beacon Range
 
-A utility mod that visualizes the range of beacons with color-coded transparent boxes. Perfect for technical building and ensuring full base coverage.
+A client-side Fabric mod for Minecraft 1.21.11 and 26.3 that shows exactly where the effects of a beacon reach.
 
-### Features
-* **Visual Indicators:** Look at any active beacon to instantly see its effective range.
-* **Level-Based Colors:**
-  * **Level 1:** Blue (20 block range)
-  * **Level 2:** Green (30 block range)
-  * **Level 3:** Yellow (40 block range)
-  * **Level 4:** Red (50 block range)
-* **Pinning:** Open the Beacon GUI and click the **Range: OFF/ON** button to pin the box. Pinned boxes stay visible even when you walk away or look elsewhere.
-* **Multi-Beacon Support:** Pin as many beacons as you need to visualize overlapping areas.
+![All four levels](images/levels.png)
 
-### Commands
-Manage your pinned beacons via the chat interface:
+## Features
 
-* **`/beaconrange list`**
-  * Displays a list of all currently pinned beacons and their coordinates.
-* **`/beaconrange remove [coordinates]`**
-  * Removes a specific beacon from your pinned list.
-  * *Note:* This command supports **Tab-Completion**. Press Tab to cycle through the list of your pinned beacon coordinates automatically.
-* **`/beaconrange clear`**
-  * Instantly removes all pinned beacons from your view.
+- **Look at a beacon** - even from up to 96 blocks away - to see its range: glowing edges, walls that fade out towards the sky and a line around the range at your height. Level and range show under your crosshair.
+- **Exact range**: 20 / 30 / 40 / 50 blocks to each side for level 1 to 4, just as far down and all the way up to the sky - the same box Minecraft uses.
+- **Pin beacons** with the *Pin range* button in the beacon screen (or a key) to keep their range visible. Pins are saved per world and server and survive unloaded chunks, dimension changes and rejoining. Broken beacons are unpinned automatically.
+- **Colors** per level (aqua, green, gold, red by default) or the color of the beam.
+- **Settings** through [Mod Menu](https://modrinth.com/mod/modmenu): wall style and strength, edges, height line, crosshair info, colors.
+- **Keys** (unbound by default): pin the beacon you look at, hide all ranges, open the settings.
+- English and German, welcome tour on first start.
 
-### Requirements
-* Fabric Loader
-* Fabric API
+## Commands
 
+| Command | What it does |
+| --- | --- |
+| `/beaconrange list` | Pinned beacons in this dimension with level, coordinates and distance; click ✖ to unpin |
+| `/beaconrange remove x y z` | Unpin one beacon (Tab completes) |
+| `/beaconrange clear` | Unpin all beacons in this world |
 
-### Upcomming
-* Color Changing
-* Better Button
-* Support for Various Extender Mods
-* Support for Older and Newer Minecraft Versions
+## Files
+
+Settings and pins live in `config/KCMods/beaconrange/` (`config.json`, `pins.json`).
+
+## Building
+
+Each Minecraft version has its own folder and branch: `1.21.11` (branch `main`) and `26.3` (branch `26.3`).
+
+```
+./gradlew build                 # jar in build/libs
+./gradlew runClientGameTest     # automated test in a real client
+```
+
+Requires [Fabric API](https://modrinth.com/mod/fabric-api). MIT license.
