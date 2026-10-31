@@ -52,7 +52,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 	public void runTest(ClientGameTestContext context) {
 		// Test-Client stumm: Lucas streamt oft nebenbei, Töne aus dem Testlauf sollen nicht durchkommen.
 		context.runOnClient(c -> c.options.getSoundSourceOptionInstance(SoundSource.MASTER).set(0.0));
-		context.getInput().resizeWindow(2560, 1440);
+		context.getInput().resizeWindow(Integer.parseInt(System.getenv().getOrDefault("KC_TEST_WIDTH", "2560")), Integer.parseInt(System.getenv().getOrDefault("KC_TEST_HEIGHT", "1440")));
 		context.runOnClient(c -> {
 			c.options.guiScale().set(3);
 			c.resizeGui();
@@ -65,7 +65,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 			server.runCommand("gamemode creative @a");
 			server.runCommand("time set 1500");
 
-			context.getInput().resizeWindow(2560, 1440);
+			context.getInput().resizeWindow(Integer.parseInt(System.getenv().getOrDefault("KC_TEST_WIDTH", "2560")), Integer.parseInt(System.getenv().getOrDefault("KC_TEST_HEIGHT", "1440")));
 			context.runOnClient(c -> {
 				c.options.fov().set(80);
 				c.options.guiScale().set(3);
