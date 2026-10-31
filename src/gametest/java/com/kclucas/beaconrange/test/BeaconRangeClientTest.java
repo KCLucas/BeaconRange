@@ -19,6 +19,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.screens.inventory.BeaconScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.phys.AABB;
 
 import java.io.IOException;
@@ -263,6 +264,9 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 			context.takeScreenshot("beaconrange-7b-einstellungen-unten");
 			context.runOnClient(c -> c.gui.setScreen(null));
 			context.waitTicks(5);
+
+			// 13. Wirkt Minecraft genau im gezeichneten Bereich? Echter Beacon mit Eile, Spieler oben, unten, seitlich.
+			testVanillaArea(context, server);
 		}
 
 		// Kaputte Einstellungen in der Datei: unbekannte Werte werden zu Standardwerten.
@@ -324,6 +328,49 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 		int[] ranges = {Beacons.range(1), Beacons.range(2), Beacons.range(3), Beacons.range(4)};
 		if (!Arrays.equals(ranges, new int[]{20, 30, 40, 50})) {
 			throw new AssertionError("Reichweiten falsch: " + Arrays.toString(ranges));
+		}
+	}
+
+	/**
+	 * Am echten Beacon: Minecraft wirkt genau dort, wo die Mod den Bereich zeichnet - 200 Blöcke darüber noch, knapp
+	 * unter dem Boden des Bereichs und knapp neben der Wand nicht mehr.
+	 */
+	private static void testVanillaArea(ClientGameTestContext context, TestServerContext server) {
+		BlockPos beacon = new BlockPos(60, 100, -60); // Stufe 1: 20 Blöcke, der Bereich beginnt unten auf Höhe 80
+		pyramid(server, beacon, 1);
+		server.runCommand("data merge block " + beacon.getX() + " " + beacon.getY() + " " + beacon.getZ()
+				+ " {primary_effect:\"minecraft:haste\"}");
+		AABB area = server.computeOnServer(s -> Beacons.area(s.overworld(), beacon, 1));
+		if (area.minY != 80 || area.maxY < 320) {
+			throw new AssertionError("Bereich falsch berechnet: " + area);
+		}
+		context.waitTicks(100); // Strahl aufbauen, Stufe berechnen
+		double x = beacon.getX() + 0.5, z = beacon.getZ() + 0.5;
+		expectHaste(context, server, area, x, 300, z, true);       // 200 Blöcke über dem Beacon
+		expectHaste(context, server, area, x, 79, z, true);        // Kopf ragt in den Boden des Bereichs
+		expectHaste(context, server, area, x, 78, z, false);       // knapp darunter
+		expectHaste(context, server, area, x + 20, 100, z, true);  // innen an der Wand
+		expectHaste(context, server, area, x + 21, 100, z, false); // knapp daneben
+	}
+
+	/** Spieler (Füße auf y, 0,6 breit und 1,8 hoch) hinstellen, einen Beacon-Takt abwarten, Eile prüfen. */
+	private static void expectHaste(ClientGameTestContext context, TestServerContext server, AABB area,
+			double x, double y, double z, boolean expected) {
+		boolean drawn = area.intersects(x - 0.3, y, z - 0.3, x + 0.3, y + 1.8, z + 0.3);
+		server.runCommand("effect clear @a");
+		String tp = "tp @a " + x + " " + y + " " + z;
+		server.runCommand(tp);
+		context.waitTicks(2);
+		context.runOnClient(c -> {
+			c.player.getAbilities().flying = true;
+			c.player.onUpdateAbilities();
+		});
+		server.runCommand(tp);
+		context.waitTicks(100); // Beacons wirken alle 80 Ticks
+		boolean vanilla = server.computeOnServer(s -> s.getPlayerList().getPlayers().getFirst().hasEffect(MobEffects.HASTE));
+		if (drawn != expected || vanilla != expected) {
+			throw new AssertionError("Bei " + x + " " + y + " " + z + ": erwartet " + expected + ", gezeichnet " + drawn
+					+ ", Minecraft " + vanilla);
 		}
 	}
 
