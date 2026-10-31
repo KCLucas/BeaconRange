@@ -83,6 +83,7 @@
 	"beaconrange.tutorial.pin.text": "Open the beacon and click \"Pin range\" to keep the range visible when you look away or leave. Pins are saved per world. /beaconrange list shows all of them.",
 	"beaconrange.tutorial.settings.title": "Make it yours",
 	"beaconrange.tutorial.settings.text": "Pick colors and wall styles in the settings. Open them through Mod Menu, or bind keys under Controls > Beacon Range - one pins a beacon without opening it.",
+	"beaconrange.news.2_0_1.edges": "Fixed: the edges of a range now fade out above the beacon instead of staying bright up to the sky.",
 	"beaconrange.news.2_0_0.range": "The range now matches Minecraft exactly: it reaches all the way up to the sky.",
 	"beaconrange.news.2_0_0.look": "New look: glowing edges, walls that fade out towards the sky and a line at your height.",
 	"beaconrange.news.2_0_0.saved": "Pinned beacons are saved per world and stay pinned when you walk away or rejoin.",

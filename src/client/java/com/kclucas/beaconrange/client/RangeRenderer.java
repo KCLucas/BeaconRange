@@ -65,7 +65,8 @@ public final class RangeRenderer {
 			});
 		}
 
-		collector.submitCustomGeometry(poseStack, RenderTypes.lines(), (pose, lines) -> {
+		// linesTranslucent: die normalen Linien ignorieren in 26.x die Deckkraft, die Kanten blendeten sonst nicht aus.
+		collector.submitCustomGeometry(poseStack, RenderTypes.linesTranslucent(), (pose, lines) -> {
 			for (BeaconArea area : areas) {
 				if (!near(area, camera, maxDistance)) {
 					continue;

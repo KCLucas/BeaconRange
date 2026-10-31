@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.1
+- Fixed: the edges of a range stayed fully bright all the way up to the sky - they now fade out above the beacon like the walls
+
 ## 2.0.0
 - The range now matches Minecraft exactly: 20 to 50 blocks to each side and all the way up to the sky (before, the box stopped as high above the beacon as it reached to the sides)
 - New look: glowing edges, walls that fade out towards the sky and a line around the range at your height

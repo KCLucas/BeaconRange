@@ -83,6 +83,7 @@
 	"beaconrange.tutorial.pin.text": "Öffne den Beacon und klick auf \"Bereich anpinnen\" - dann bleibt der Bereich sichtbar, auch wenn du wegschaust oder weggehst. Wird pro Welt gespeichert. /beaconrange list zeigt alle.",
 	"beaconrange.tutorial.settings.title": "Nach deinem Geschmack",
 	"beaconrange.tutorial.settings.text": "Farben und Wände stellst du in den Einstellungen ein. Die öffnest du über Mod Menu oder per Taste unter Steuerung > Beacon Range - eine Taste pinnt einen Beacon auch, ohne ihn zu öffnen.",
+	"beaconrange.news.2_0_1.edges": "Behoben: Die Kanten eines Bereichs blenden über dem Beacon wieder aus, statt hell bis in den Himmel zu leuchten.",
 	"beaconrange.news.2_0_0.range": "Der Bereich stimmt jetzt genau mit Minecraft überein: Er reicht bis ganz nach oben in den Himmel.",
 	"beaconrange.news.2_0_0.look": "Neuer Look: leuchtende Kanten, Wände, die zum Himmel hin ausblenden, und eine Linie auf deiner Höhe.",
 	"beaconrange.news.2_0_0.saved": "Angepinnte Beacons werden pro Welt gespeichert und bleiben angepinnt, wenn du weggehst oder neu beitrittst.",

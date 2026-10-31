@@ -117,6 +117,8 @@ public class BeaconRangeClient implements ClientModInitializer {
 								Component.translatable("beaconrange.tutorial.settings.text"),
 								Identifier.fromNamespaceAndPath(MOD_ID, "textures/tutorial/settings.png"))),
 				List.of(
+						new Onboarding.Release("2.0.1", List.of(
+								Component.translatable("beaconrange.news.2_0_1.edges"))),
 						new Onboarding.Release("2.0.0", List.of(
 								Component.translatable("beaconrange.news.2_0_0.range"),
 								Component.translatable("beaconrange.news.2_0_0.look"),
