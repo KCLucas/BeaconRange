@@ -5,10 +5,10 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
@@ -79,15 +79,15 @@ public class BeaconRangeClient implements ClientModInitializer {
 		config = BeaconRangeConfig.load();
 		PINS.load();
 
-		pinKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-				"key.beaconrange.pin", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
-		toggleKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-				"key.beaconrange.toggle", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
-		settingsKey = KeyBindingHelper.registerKeyBinding(new KeyMapping(
-				"key.beaconrange.settings", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
+		pinKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+				"key.beaconrange.pin", InputConstants.Type.KEYBOARD, InputConstants.UNKNOWN.getValue(), CATEGORY));
+		toggleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+				"key.beaconrange.toggle", InputConstants.Type.KEYBOARD, InputConstants.UNKNOWN.getValue(), CATEGORY));
+		settingsKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+				"key.beaconrange.settings", InputConstants.Type.KEYBOARD, InputConstants.UNKNOWN.getValue(), CATEGORY));
 
 		ClientTickEvents.END_CLIENT_TICK.register(BeaconRangeClient::onClientTick);
-		WorldRenderEvents.BEFORE_TRANSLUCENT.register(context -> RangeRenderer.render(context, visible));
+		LevelRenderEvents.COLLECT_SUBMITS.register(context -> RangeRenderer.render(context, visible));
 		HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR,
 				Identifier.fromNamespaceAndPath(MOD_ID, "look_info"), LookInfoHud::render);
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
@@ -127,8 +127,8 @@ public class BeaconRangeClient implements ClientModInitializer {
 
 	private static void onClientTick(Minecraft client) {
 		while (settingsKey.consumeClick()) {
-			if (client.screen == null) {
-				client.setScreen(new BeaconRangeConfigScreen(null));
+			if (client.gui.screen() == null) {
+				client.gui.setScreen(new BeaconRangeConfigScreen(null));
 			}
 		}
 
@@ -141,8 +141,8 @@ public class BeaconRangeClient implements ClientModInitializer {
 
 		while (toggleKey.consumeClick()) {
 			hidden = !hidden;
-			client.player.displayClientMessage(Component.translatable(
-					hidden ? "beaconrange.toggle.hidden" : "beaconrange.toggle.shown"), true);
+			client.player.sendOverlayMessage(Component.translatable(
+					hidden ? "beaconrange.toggle.hidden" : "beaconrange.toggle.shown"));
 		}
 
 		lookedAt = findLookedAtBeacon(client, level);
@@ -150,7 +150,7 @@ public class BeaconRangeClient implements ClientModInitializer {
 
 		while (pinKey.consumeClick()) {
 			if (lookedAt == null) {
-				client.player.displayClientMessage(Component.translatable("beaconrange.pin.no_beacon"), true);
+				client.player.sendOverlayMessage(Component.translatable("beaconrange.pin.no_beacon"));
 			} else {
 				togglePin(client, lookedAt);
 			}
@@ -189,12 +189,12 @@ public class BeaconRangeClient implements ClientModInitializer {
 			return;
 		}
 		if (PinStore.worldKey(client) == null) {
-			client.player.displayClientMessage(Component.translatable("beaconrange.pin.unavailable"), true);
+			client.player.sendOverlayMessage(Component.translatable("beaconrange.pin.unavailable"));
 			return;
 		}
 		boolean pinned = PINS.toggle(client, pos, Beacons.level(client.level, pos));
-		client.player.displayClientMessage(Component.translatable(
-				pinned ? "beaconrange.pin.added" : "beaconrange.pin.removed", coordinates(pos)), true);
+		client.player.sendOverlayMessage(Component.translatable(
+				pinned ? "beaconrange.pin.added" : "beaconrange.pin.removed", coordinates(pos)));
 		visible = hidden ? List.of() : collect(client, client.level);
 	}
 
@@ -209,8 +209,8 @@ public class BeaconRangeClient implements ClientModInitializer {
 				if (!Beacons.isBeacon(level, pos)) {
 					PINS.remove(client, pos);
 					if (client.player != null) {
-						client.player.displayClientMessage(prefix().append(
-								Component.translatable("beaconrange.pin.gone", coordinates(pos))), false);
+						client.player.sendSystemMessage(prefix().append(
+								Component.translatable("beaconrange.pin.gone", coordinates(pos))));
 					}
 					continue;
 				}

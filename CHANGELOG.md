@@ -14,7 +14,7 @@
 - German translation
 - Welcome tour on first start and a "What's new" screen after updates
 - New icon
-- Made for Minecraft 1.21.11
+- Made for Minecraft 26.3
 
 ## 1.0.2
 - `/beaconrange list` shows all pinned beacons - click the red ✖ next to one to unpin it

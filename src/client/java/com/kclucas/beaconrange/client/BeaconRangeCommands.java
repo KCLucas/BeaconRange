@@ -17,8 +17,8 @@ import org.jspecify.annotations.Nullable;
 import java.util.Comparator;
 import java.util.List;
 
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
 
 /** /beaconrange list | remove x y z | clear */
 public final class BeaconRangeCommands {
@@ -56,7 +56,7 @@ public final class BeaconRangeCommands {
 					Component.translatable("beaconrange.command.list.header", here.size()).withStyle(ChatFormatting.GOLD)));
 			Vec3 player = source.getPosition();
 			List<PinStore.Pin> nearestFirst = here.stream()
-					.sorted(Comparator.comparingDouble(pin -> pin.pos().getCenter().distanceToSqr(player))).toList();
+					.sorted(Comparator.comparingDouble(pin -> Vec3.atCenterOf(pin.pos()).distanceToSqr(player))).toList();
 			for (PinStore.Pin pin : nearestFirst) {
 				source.sendFeedback(entry(pin, player));
 			}
@@ -79,7 +79,7 @@ public final class BeaconRangeCommands {
 		} else {
 			line.withStyle(ChatFormatting.GRAY).append(Component.translatable("beaconrange.info.inactive"));
 		}
-		int distance = Mth.floor(Math.sqrt(pos.getCenter().distanceToSqr(player)));
+		int distance = Mth.floor(Math.sqrt(Vec3.atCenterOf(pos).distanceToSqr(player)));
 		line.append(Component.literal("   " + text(pos)).withStyle(ChatFormatting.AQUA))
 				.append(Component.literal("   ").append(Component.translatable("beaconrange.command.list.distance", distance))
 						.withStyle(ChatFormatting.DARK_GRAY));

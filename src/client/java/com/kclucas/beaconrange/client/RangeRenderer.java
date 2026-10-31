@@ -2,9 +2,9 @@ package com.kclucas.beaconrange.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
@@ -35,15 +35,15 @@ public final class RangeRenderer {
 	private RangeRenderer() {
 	}
 
-	public static void render(WorldRenderContext context, List<BeaconArea> areas) {
-		PoseStack poseStack = context.matrices();
-		MultiBufferSource buffers = context.consumers();
+	public static void render(LevelRenderContext context, List<BeaconArea> areas) {
+		PoseStack poseStack = context.poseStack();
+		SubmitNodeCollector collector = context.submitNodeCollector();
 		Minecraft client = Minecraft.getInstance();
-		if (areas.isEmpty() || poseStack == null || buffers == null || client.player == null) {
+		if (areas.isEmpty() || client.player == null) {
 			return;
 		}
 		BeaconRangeConfig config = BeaconRangeClient.getConfig();
-		Vec3 camera = context.worldState().cameraRenderState.pos;
+		Vec3 camera = context.levelState().cameraRenderState.pos;
 		Player player = client.player;
 		float partialTick = client.getDeltaTracker().getGameTimeDeltaPartialTick(false);
 		// knapp über den Füßen: zeigt die Grenze am Boden, auf dem man steht
@@ -53,29 +53,31 @@ public final class RangeRenderer {
 		// Weit entfernte angepinnte Beacons nicht quer über die Karte zeichnen.
 		double maxDistance = client.options.getEffectiveRenderDistance() * 16.0 + 64.0;
 
-		Matrix4f matrix = poseStack.last().pose();
+		// Gezeichnet wird später gesammelt; die Listen hier hängen nur die Ecken an.
 		if (config.walls != BeaconRangeConfig.WallStyle.OFF) {
-			VertexConsumer fill = buffers.getBuffer(RenderTypes.debugFilledBox());
-			for (BeaconArea area : areas) {
-				if (near(area, camera, maxDistance)) {
-					walls(fill, matrix, area, camera, config);
+			collector.submitCustomGeometry(poseStack, RenderTypes.debugFilledBox(), (pose, fill) -> {
+				Matrix4f matrix = pose.pose();
+				for (BeaconArea area : areas) {
+					if (near(area, camera, maxDistance)) {
+						walls(fill, matrix, area, camera, config);
+					}
 				}
-			}
+			});
 		}
 
-		VertexConsumer lines = buffers.getBuffer(RenderTypes.lines());
-		PoseStack.Pose pose = poseStack.last();
-		for (BeaconArea area : areas) {
-			if (!near(area, camera, maxDistance)) {
-				continue;
+		collector.submitCustomGeometry(poseStack, RenderTypes.lines(), (pose, lines) -> {
+			for (BeaconArea area : areas) {
+				if (!near(area, camera, maxDistance)) {
+					continue;
+				}
+				if (config.edges) {
+					edges(lines, pose, area, camera, config.walls == BeaconRangeConfig.WallStyle.FULL);
+				}
+				if (config.heightLine && showHeightLine(area, lineY, playerX, playerZ)) {
+					ring(lines, pose, area.box(), lineY, camera, argb(area.color(), 1.0F), HEIGHT_LINE_WIDTH);
+				}
 			}
-			if (config.edges) {
-				edges(lines, pose, area, camera, config.walls == BeaconRangeConfig.WallStyle.FULL);
-			}
-			if (config.heightLine && showHeightLine(area, lineY, playerX, playerZ)) {
-				ring(lines, pose, area.box(), lineY, camera, argb(area.color(), 1.0F), HEIGHT_LINE_WIDTH);
-			}
-		}
+		});
 	}
 
 	/**

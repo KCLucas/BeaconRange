@@ -71,9 +71,9 @@ public final class BeaconScreenButton {
 				.bounds(x, y, WIDTH, HEIGHT)
 				.tooltip(Tooltip.create(Component.translatable("beaconrange.button.tooltip")))
 				.build();
-		Screens.getButtons(screen).add(button);
+		Screens.getWidgets(screen).add(button);
 
-		ScreenEvents.afterRender(screen).register((s, graphics, mouseX, mouseY, partialTick) -> {
+		ScreenEvents.afterForeground(screen).register((s, graphics, mouseX, mouseY, partialTick) -> {
 			if (client.level == null) {
 				return;
 			}
@@ -81,9 +81,9 @@ public final class BeaconScreenButton {
 			Component info = LookInfoHud.describe(client, pos, Beacons.level(client.level, pos), false);
 			int textWidth = client.font.width(info);
 			if (infoLeft) {
-				graphics.drawString(client.font, info, button.getX() - 6 - textWidth, button.getY() + 6, 0xFFFFFFFF);
+				graphics.text(client.font, info, button.getX() - 6 - textWidth, button.getY() + 6, 0xFFFFFFFF);
 			} else {
-				graphics.drawString(client.font, info, button.getX() + 2, button.getY() + HEIGHT + 5, 0xFFFFFFFF);
+				graphics.text(client.font, info, button.getX() + 2, button.getY() + HEIGHT + 5, 0xFFFFFFFF);
 			}
 		});
 	}

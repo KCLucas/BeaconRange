@@ -4,7 +4,7 @@ import com.kclucas.beaconrange.client.onboarding.Onboarding;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.ContainerObjectSelectionList;
@@ -146,7 +146,7 @@ public class BeaconRangeConfigScreen extends Screen {
 	@Override
 	public void onClose() {
 		BeaconRangeClient.getConfig().save();
-		this.minecraft.setScreen(this.parent);
+		this.minecraft.gui.setScreen(this.parent);
 	}
 
 	private class OptionList extends ContainerObjectSelectionList<Row> {
@@ -181,7 +181,7 @@ public class BeaconRangeConfigScreen extends Screen {
 			"..###..",
 	};
 
-	private static void drawResetIcon(GuiGraphics graphics, int x, int y, int color) {
+	private static void drawResetIcon(GuiGraphicsExtractor graphics, int x, int y, int color) {
 		for (int row = 0; row < RESET_ICON.length; row++) {
 			for (int col = 0; col < RESET_ICON[row].length(); col++) {
 				if (RESET_ICON[row].charAt(col) == '#') {
@@ -209,12 +209,12 @@ public class BeaconRangeConfigScreen extends Screen {
 		}
 
 		@Override
-		public void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
+		public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
 			Font font = BeaconRangeConfigScreen.this.font;
 			int textWidth = font.width(this.title);
 			int centerX = getContentXMiddle();
 			int textY = getContentBottom() - 12;
-			graphics.drawString(font, this.title, centerX - textWidth / 2, textY, COLOR_ACCENT, true);
+			graphics.text(font, this.title, centerX - textWidth / 2, textY, COLOR_ACCENT, true);
 
 			int lineY = textY + 4;
 			int inner = textWidth / 2 + 8;
@@ -223,7 +223,7 @@ public class BeaconRangeConfigScreen extends Screen {
 		}
 
 		/** Waagerechte Linie, die zum Rand hin ausblendet. */
-		private static void fadeLine(GuiGraphics graphics, int from, int to, int y, boolean fadeIn) {
+		private static void fadeLine(GuiGraphicsExtractor graphics, int from, int to, int y, boolean fadeIn) {
 			int steps = 12;
 			float span = (to - from) / (float) steps;
 			for (int i = 0; i < steps; i++) {
@@ -247,7 +247,7 @@ public class BeaconRangeConfigScreen extends Screen {
 	}
 
 	/** Gemeinsames Aussehen aller Einstellungs-Zeilen: Text links, Bedienelement und Zurücksetzen-Knopf rechts. */
-	private void renderOption(Row row, GuiGraphics graphics, Component label, Component description,
+	private void renderOption(Row row, GuiGraphicsExtractor graphics, Component label, Component description,
 			AbstractWidget control, @Nullable Button resetButton, int mouseX, int mouseY, boolean hovered,
 			float partialTick) {
 		if (hovered) {
@@ -269,14 +269,14 @@ public class BeaconRangeConfigScreen extends Screen {
 		List<FormattedCharSequence> lines = this.font.split(description, textWidth);
 		int shown = Math.min(lines.size(), 2);
 		int textY = row.getContentY() + (row.getContentHeight() - (11 + shown * 9)) / 2;
-		graphics.drawString(this.font, label, row.getContentX(), textY, COLOR_LABEL, true);
+		graphics.text(this.font, label, row.getContentX(), textY, COLOR_LABEL, true);
 		for (int i = 0; i < shown; i++) {
-			graphics.drawString(this.font, lines.get(i), row.getContentX(), textY + 11 + i * 9, COLOR_DESCRIPTION, false);
+			graphics.text(this.font, lines.get(i), row.getContentX(), textY + 11 + i * 9, COLOR_DESCRIPTION, false);
 		}
 
-		control.render(graphics, mouseX, mouseY, partialTick);
+		control.extractRenderState(graphics, mouseX, mouseY, partialTick);
 		if (resetButton != null) {
-			resetButton.render(graphics, mouseX, mouseY, partialTick);
+			resetButton.extractRenderState(graphics, mouseX, mouseY, partialTick);
 			drawResetIcon(graphics, resetButton.getX() + (RESET_WIDTH - 7) / 2, buttonY + 6,
 					resetButton.active ? COLOR_LABEL : 0xFF6B6F75);
 		}
@@ -302,7 +302,7 @@ public class BeaconRangeConfigScreen extends Screen {
 		}
 
 		@Override
-		public void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
+		public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
 			renderOption(this, graphics, this.label, this.description, this.showButton, null,
 					mouseX, mouseY, hovered, partialTick);
 		}
@@ -336,7 +336,7 @@ public class BeaconRangeConfigScreen extends Screen {
 		}
 
 		@Override
-		public void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
+		public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
 			Minecraft client = BeaconRangeConfigScreen.this.minecraft;
 			PinStore pins = BeaconRangeClient.getPins();
 			Component description;
@@ -406,7 +406,7 @@ public class BeaconRangeConfigScreen extends Screen {
 		}
 
 		@Override
-		public void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
+		public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
 			renderOption(this, graphics, this.label, this.description.apply(this.control.getValue()),
 					this.control, this.resetButton, mouseX, mouseY, hovered, partialTick);
 		}

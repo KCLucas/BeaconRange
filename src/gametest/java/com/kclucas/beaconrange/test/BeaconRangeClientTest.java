@@ -54,7 +54,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 		context.getInput().resizeWindow(2560, 1440);
 		context.runOnClient(c -> {
 			c.options.guiScale().set(3);
-			c.resizeDisplay();
+			c.resizeGui();
 		});
 		testOnboarding(context);
 		testRanges();
@@ -71,7 +71,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 				c.options.renderDistance().set(12);
 				c.options.simulationDistance().set(12); // auch weit entfernte Beacons aktualisieren ihren Strahl
 				c.options.broadcastOptions(); // sonst schickt der Server weiter nur so viele Chunks wie beim Beitreten
-				c.resizeDisplay();
+				c.resizeGui();
 			});
 			// Der Server lädt nur Chunks um den Spieler - den ganzen Bauplatz vorher laden, sonst gehen die Befehle ins Leere.
 			server.runCommand("forceload add -240 -80 80 110");
@@ -118,7 +118,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 			}
 			context.takeScreenshot("beaconrange-2b-angepinnt");
 			// Fenstergröße ändern baut das Fenster neu auf - der Knopf muss bleiben und den Zustand kennen.
-			context.runOnClient(c -> c.resizeDisplay());
+			context.runOnClient(c -> c.resizeGui());
 			context.waitTicks(5);
 			context.getInput().pressKey(InputConstants.KEY_ESCAPE);
 			context.waitTicks(10);
@@ -167,7 +167,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 			context.runOnClient(c -> {
 				KeyMapping pin = Arrays.stream(c.options.keyMappings)
 						.filter(k -> k.getName().equals("key.beaconrange.pin")).findFirst().orElseThrow();
-				pin.setKey(InputConstants.Type.KEYSYM.getOrCreate(InputConstants.KEY_P));
+				pin.setKey(InputConstants.Type.KEYBOARD.getOrCreate(InputConstants.KEY_P));
 				KeyMapping.resetMapping();
 			});
 			lookFrom(context, server, 34.5, GROUND + 9, -78.5, MAIN);
@@ -234,7 +234,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 			// 11. Befehle: Liste, Entfernen (auch im alten Format x,y,z), alle lösen.
 			server.runCommand("tp @a 0.5 " + GROUND + " -20.5 0 0");
 			context.waitTicks(10);
-			context.runOnClient(c -> c.gui.getChat().clearMessages(false));
+			context.runOnClient(c -> c.gui.hud.getChat().clearMessages(false));
 			command(context, "beaconrange list");
 			context.waitTicks(5);
 			context.takeScreenshot("beaconrange-6-liste");
@@ -261,7 +261,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 			context.getInput().scroll(-20);
 			context.waitTicks(5);
 			context.takeScreenshot("beaconrange-7b-einstellungen-unten");
-			context.runOnClient(c -> c.setScreen(null));
+			context.runOnClient(c -> c.gui.setScreen(null));
 			context.waitTicks(5);
 		}
 
@@ -292,7 +292,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 		}
 		context.getInput().pressKey(InputConstants.KEY_RIGHT);
 		context.waitTicks(10);
-		if (context.computeOnClient(c -> c.screen instanceof OnboardingScreen)) {
+		if (context.computeOnClient(c -> c.gui.screen() instanceof OnboardingScreen)) {
 			throw new AssertionError("Die Tour sollte nach der letzten Seite geschlossen sein");
 		}
 		if (!read(Onboarding.seenFilePath()).contains("\"beaconrange\": \"" + MOD_VERSION + "\"")) {
@@ -305,13 +305,13 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 		context.waitTicks(5);
 		context.getInput().pressKey(InputConstants.KEY_RIGHT);
 		context.waitTicks(5);
-		if (!context.computeOnClient(c -> c.screen instanceof OnboardingScreen screen && screen.isNewsStep())) {
+		if (!context.computeOnClient(c -> c.gui.screen() instanceof OnboardingScreen screen && screen.isNewsStep())) {
 			throw new AssertionError("Nach dem Update sollte \"Was ist neu\" kommen");
 		}
 		context.takeScreenshot("onboarding-5-was-ist-neu");
 		context.getInput().pressKey(InputConstants.KEY_RIGHT);
 		context.waitTicks(10);
-		if (context.computeOnClient(c -> c.screen instanceof OnboardingScreen)) {
+		if (context.computeOnClient(c -> c.gui.screen() instanceof OnboardingScreen)) {
 			throw new AssertionError("Nach den Neuigkeiten sollte der Screen geschlossen sein");
 		}
 	}
@@ -377,7 +377,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 	/** Warten, bis die Chunks um den Spieler da und gezeichnet sind. */
 	private static void waitForWorld(ClientGameTestContext context, TestSingleplayerContext world) {
 		context.waitTicks(60);
-		world.getClientWorld().waitForChunksRender(false, 1200);
+		world.getConnection().waitForChunksRender(false, 1200);
 	}
 
 	private static void command(ClientGameTestContext context, String command) {
@@ -412,7 +412,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 
 	private static void expectStep(ClientGameTestContext context, int expected) {
 		int actual = context.computeOnClient(c ->
-				c.screen instanceof OnboardingScreen screen ? screen.getStepIndex() : Integer.MIN_VALUE);
+				c.gui.screen() instanceof OnboardingScreen screen ? screen.getStepIndex() : Integer.MIN_VALUE);
 		if (actual != expected) {
 			throw new AssertionError("Tutorial: erwartet Seite " + expected + ", ist aber " + actual);
 		}
@@ -420,18 +420,18 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 
 	/** Wie mit F1: ohne Hotbar, Arm und Fadenkreuz. */
 	private static void screenshotWithoutHud(ClientGameTestContext context, String name) {
-		context.runOnClient(c -> c.options.hideGui = true);
+		context.runOnClient(c -> { if (!c.gui.hud.isHidden()) c.gui.hud.toggle(); });
 		context.waitTicks(2);
 		context.takeScreenshot(name);
-		context.runOnClient(c -> c.options.hideGui = false);
+		context.runOnClient(c -> { if (c.gui.hud.isHidden()) c.gui.hud.toggle(); });
 	}
 
 	/** Statusmeldungen ausblenden lassen, Chat und Toasts leeren - für aufgeräumte Screenshots. */
 	private static void calm(ClientGameTestContext context) {
 		context.waitTicks(60);
 		context.runOnClient(c -> {
-			c.gui.getChat().clearMessages(false);
-			c.getToastManager().clear();
+			c.gui.hud.getChat().clearMessages(false);
+			c.gui.toastManager().clear();
 		});
 		context.waitTicks(5);
 	}
