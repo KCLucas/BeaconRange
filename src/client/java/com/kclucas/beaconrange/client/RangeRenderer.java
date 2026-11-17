@@ -15,8 +15,9 @@ import org.joml.Matrix4f;
 import java.util.List;
 
 /**
- * Zeichnet die Bereiche: halbtransparente Wände (unten kräftig, über dem Beacon nach oben ausblendend), leuchtende
- * Kanten und eine Linie rundherum auf Höhe des Spielers.
+ * Zeichnet die Bereiche: bei Beacons halbtransparente Wände (unten kräftig, über dem Beacon nach oben ausblendend),
+ * leuchtende Kanten und eine Linie rundherum auf Höhe des Spielers; bei Conduits eine Kugel mit Gitter, dem Kreis auf
+ * Spielerhöhe und bei vollem Rahmen dem Würfel, in dem er Monster angreift.
  */
 public final class RangeRenderer {
 
@@ -31,15 +32,25 @@ public final class RangeRenderer {
 	private static final float OUTSIDE = 0.35F;
 	/** Die Linie auf Spielerhöhe erscheint im Bereich und bis so viele Blöcke davor - dort sucht man die Grenze. */
 	private static final double HEIGHT_LINE_REACH = 12.0;
+	/** So fein ist die Conduit-Kugel unterteilt - wirkt auch bei 96 Blöcken Radius rund. */
+	private static final int SPHERE_STACKS = 32;
+	private static final int SPHERE_SLICES = 64;
+	/** Die Kugel hat viel mehr Fläche als ein Kasten - etwas zurückhaltender, sonst färbt sie alles ein. */
+	private static final float SPHERE_ALPHA = 0.7F;
+	/** Breitenkreise und Längslinien der Kugel: schwächer und dünner als der Äquator. */
+	private static final float GRID = 0.45F;
+	private static final float GRID_WIDTH = 1.5F;
+	/** Würfel, in dem ein voller Conduit Monster angreift: rot. */
+	private static final int ATTACK_COLOR = 0xFF5C5C;
 
 	private RangeRenderer() {
 	}
 
-	public static void render(WorldRenderContext context, List<BeaconArea> areas) {
+	public static void render(WorldRenderContext context, List<BeaconArea> areas, List<ConduitArea> conduits) {
 		PoseStack poseStack = context.matrices();
 		MultiBufferSource buffers = context.consumers();
 		Minecraft client = Minecraft.getInstance();
-		if (areas.isEmpty() || poseStack == null || buffers == null || client.player == null) {
+		if (areas.isEmpty() && conduits.isEmpty() || poseStack == null || buffers == null || client.player == null) {
 			return;
 		}
 		BeaconRangeConfig config = BeaconRangeClient.getConfig();
@@ -50,8 +61,8 @@ public final class RangeRenderer {
 		double lineY = Mth.lerp(partialTick, player.yo, player.getY()) + 0.1;
 		double playerX = Mth.lerp(partialTick, player.xo, player.getX());
 		double playerZ = Mth.lerp(partialTick, player.zo, player.getZ());
-		// Weit entfernte angepinnte Beacons nicht quer über die Karte zeichnen.
-		double maxDistance = client.options.getEffectiveRenderDistance() * 16.0 + 64.0;
+		// Nur bis zur Sichtweite: dahinter liegt Nebel, die Wände würden ungetrübt aus ihm herausleuchten.
+		double maxDistance = client.options.getEffectiveRenderDistance() * 16.0;
 
 		Matrix4f matrix = poseStack.last().pose();
 		if (config.walls != BeaconRangeConfig.WallStyle.OFF) {
@@ -59,6 +70,11 @@ public final class RangeRenderer {
 			for (BeaconArea area : areas) {
 				if (near(area, camera, maxDistance)) {
 					walls(fill, matrix, area, camera, config);
+				}
+			}
+			for (ConduitArea conduit : conduits) {
+				if (near(conduit, camera, maxDistance)) {
+					sphere(fill, matrix, conduit, camera, config.opacity.alpha * SPHERE_ALPHA);
 				}
 			}
 		}
@@ -74,6 +90,20 @@ public final class RangeRenderer {
 			}
 			if (config.heightLine && showHeightLine(area, lineY, playerX, playerZ)) {
 				ring(lines, pose, area.box(), lineY, camera, argb(area.color(), 1.0F), HEIGHT_LINE_WIDTH);
+			}
+		}
+		for (ConduitArea conduit : conduits) {
+			if (!near(conduit, camera, maxDistance)) {
+				continue;
+			}
+			if (config.edges) {
+				grid(lines, pose, conduit, camera);
+			}
+			if (config.heightLine) {
+				heightCircle(lines, pose, conduit, lineY, playerX, playerZ, camera);
+			}
+			if (config.conduitAttack && conduit.attacks()) {
+				cube(lines, pose, Conduits.attackArea(conduit.pos()), camera, argb(ATTACK_COLOR, 1.0F), EDGE_WIDTH);
 			}
 		}
 	}
@@ -99,6 +129,127 @@ public final class RangeRenderer {
 		return dx * dx + dz * dz < maxDistance * maxDistance;
 	}
 
+	private static boolean near(ConduitArea conduit, Vec3 camera, double maxDistance) {
+		double dx = Math.max(0, Math.abs(conduit.centerX() - camera.x) - conduit.range());
+		double dz = Math.max(0, Math.abs(conduit.centerZ() - camera.z) - conduit.range());
+		return dx * dx + dz * dz < maxDistance * maxDistance;
+	}
+
+	// ------------------------------------------------------------------ Conduit: Kugel
+
+	/** Punkte der Einheitskugel: Breitenkreise von oben (0) nach unten, Längen rundherum - einmal ausgerechnet. */
+	private static final float[] STACK_Y = new float[SPHERE_STACKS + 1];
+	private static final float[] STACK_R = new float[SPHERE_STACKS + 1];
+	private static final float[] SLICE_X = new float[SPHERE_SLICES + 1];
+	private static final float[] SLICE_Z = new float[SPHERE_SLICES + 1];
+
+	static {
+		for (int i = 0; i <= SPHERE_STACKS; i++) {
+			double theta = Math.PI * i / SPHERE_STACKS;
+			STACK_Y[i] = (float) Math.cos(theta);
+			STACK_R[i] = (float) Math.sin(theta);
+		}
+		for (int j = 0; j <= SPHERE_SLICES; j++) {
+			double phi = 2 * Math.PI * j / SPHERE_SLICES;
+			SLICE_X[j] = (float) Math.cos(phi);
+			SLICE_Z[j] = (float) Math.sin(phi);
+		}
+	}
+
+	/**
+	 * Halbtransparente Kugel. Jedes Feld nur von der Seite, auf der die Kamera ist: von außen schwach (sonst wird alles
+	 * dahinter trüb), von innen deutlich - in dieser Reihenfolge zeigt es nach außen, umgekehrt nach innen.
+	 */
+	private static void sphere(VertexConsumer v, Matrix4f m, ConduitArea conduit, Vec3 camera, float alpha) {
+		float cx = (float) (conduit.centerX() - camera.x), cy = (float) (conduit.centerY() - camera.y);
+		float cz = (float) (conduit.centerZ() - camera.z), r = conduit.range();
+		int inside = argb(conduit.color(), alpha), outside = argb(conduit.color(), alpha * OUTSIDE);
+		for (int i = 0; i < SPHERE_STACKS; i++) {
+			float topY = cy + r * STACK_Y[i], bottomY = cy + r * STACK_Y[i + 1];
+			float topR = r * STACK_R[i], bottomR = r * STACK_R[i + 1];
+			for (int j = 0; j < SPHERE_SLICES; j++) {
+				float ax = cx + topR * SLICE_X[j], az = cz + topR * SLICE_Z[j];
+				float bx = cx + topR * SLICE_X[j + 1], bz = cz + topR * SLICE_Z[j + 1];
+				float qx = cx + bottomR * SLICE_X[j + 1], qz = cz + bottomR * SLICE_Z[j + 1];
+				float dx = cx + bottomR * SLICE_X[j], dz = cz + bottomR * SLICE_Z[j];
+				// Mitte des Feldes; die Kamera liegt im Ursprung. Außen, wenn sie in Richtung der Außennormale liegt.
+				float mx = (ax + bx + qx + dx) / 4, my = (topY + bottomY) / 2, mz = (az + bz + qz + dz) / 4;
+				boolean outsideView = (mx - cx) * -mx + (my - cy) * -my + (mz - cz) * -mz > 0;
+				if (outsideView) {
+					v.addVertex(m, ax, topY, az).setColor(outside);
+					v.addVertex(m, bx, topY, bz).setColor(outside);
+					v.addVertex(m, qx, bottomY, qz).setColor(outside);
+					v.addVertex(m, dx, bottomY, dz).setColor(outside);
+				} else {
+					v.addVertex(m, dx, bottomY, dz).setColor(inside);
+					v.addVertex(m, qx, bottomY, qz).setColor(inside);
+					v.addVertex(m, bx, topY, bz).setColor(inside);
+					v.addVertex(m, ax, topY, az).setColor(inside);
+				}
+			}
+		}
+	}
+
+	/** Gitter auf der Kugel: Äquator kräftig, dazu Breitenkreise und Längslinien schwächer. */
+	private static void grid(VertexConsumer v, PoseStack.Pose pose, ConduitArea conduit, Vec3 camera) {
+		int strong = argb(conduit.color(), 1.0F), faint = argb(conduit.color(), GRID);
+		float cx = (float) (conduit.centerX() - camera.x), cy = (float) (conduit.centerY() - camera.y);
+		float cz = (float) (conduit.centerZ() - camera.z), r = conduit.range();
+		for (int ring = 1; ring < 6; ring++) {
+			int i = SPHERE_STACKS * ring / 6;
+			boolean equator = ring == 3;
+			circle(v, pose, cx, cy + r * STACK_Y[i], cz, r * STACK_R[i], equator ? strong : faint,
+					equator ? EDGE_WIDTH : GRID_WIDTH);
+		}
+		for (int meridian = 0; meridian < 8; meridian++) {
+			int j = SPHERE_SLICES * meridian / 8;
+			for (int i = 0; i < SPHERE_STACKS; i++) {
+				line(v, pose, cx + r * STACK_R[i] * SLICE_X[j], cy + r * STACK_Y[i], cz + r * STACK_R[i] * SLICE_Z[j],
+						cx + r * STACK_R[i + 1] * SLICE_X[j], cy + r * STACK_Y[i + 1], cz + r * STACK_R[i + 1] * SLICE_Z[j],
+						faint, faint, GRID_WIDTH);
+			}
+		}
+	}
+
+	/** Der Kreis, in dem die Kugel die Höhe des Spielers schneidet - nur in der Nähe, wie bei Beacons. */
+	private static void heightCircle(VertexConsumer v, PoseStack.Pose pose, ConduitArea conduit, double y,
+			double x, double z, Vec3 camera) {
+		double dy = y - conduit.centerY();
+		double r = conduit.range();
+		if (Math.abs(dy) >= r) {
+			return;
+		}
+		double radius = Math.sqrt(r * r - dy * dy);
+		double horizontal = Math.sqrt(Mth.square(x - conduit.centerX()) + Mth.square(z - conduit.centerZ()));
+		if (horizontal > radius + HEIGHT_LINE_REACH) {
+			return;
+		}
+		circle(v, pose, (float) (conduit.centerX() - camera.x), (float) (y - camera.y), (float) (conduit.centerZ() - camera.z),
+				(float) radius, argb(conduit.color(), 1.0F), HEIGHT_LINE_WIDTH);
+	}
+
+	private static void circle(VertexConsumer v, PoseStack.Pose pose, float cx, float y, float cz, float radius,
+			int color, float width) {
+		for (int j = 0; j < SPHERE_SLICES; j++) {
+			line(v, pose, cx + radius * SLICE_X[j], y, cz + radius * SLICE_Z[j],
+					cx + radius * SLICE_X[j + 1], y, cz + radius * SLICE_Z[j + 1], color, color, width);
+		}
+	}
+
+	/** Die zwölf Kanten eines Quaders. */
+	private static void cube(VertexConsumer v, PoseStack.Pose pose, AABB box, Vec3 camera, int color, float width) {
+		ring(v, pose, box, box.minY, camera, color, width);
+		ring(v, pose, box, box.maxY, camera, color, width);
+		float y1 = (float) (box.minY - camera.y), y2 = (float) (box.maxY - camera.y);
+		double[][] corners = {{box.minX, box.minZ}, {box.maxX, box.minZ}, {box.maxX, box.maxZ}, {box.minX, box.maxZ}};
+		for (double[] c : corners) {
+			float x = (float) (c[0] - camera.x), z = (float) (c[1] - camera.z);
+			line(v, pose, x, y1, z, x, y2, z, color, color, width);
+		}
+	}
+
+	// ------------------------------------------------------------------ Beacon: Kasten
+
 	private static void walls(VertexConsumer fill, Matrix4f m, BeaconArea area, Vec3 camera, BeaconRangeConfig config) {
 		AABB box = area.box();
 		float alpha = config.opacity.alpha;
@@ -123,27 +274,31 @@ public final class RangeRenderer {
 		float x1 = (float) (box.minX - camera.x), x2 = (float) (box.maxX - camera.x);
 		float z1 = (float) (box.minZ - camera.z), z2 = (float) (box.maxZ - camera.z);
 		float y1 = (float) (fromY - camera.y), y2 = (float) (toY - camera.y);
-		wall(v, m, x1, z1, x2, z1, y1, y2, bottom, top, outsideBottom, outsideTop); // Norden
-		wall(v, m, x2, z1, x2, z2, y1, y2, bottom, top, outsideBottom, outsideTop); // Osten
-		wall(v, m, x2, z2, x1, z2, y1, y2, bottom, top, outsideBottom, outsideTop); // Süden
-		wall(v, m, x1, z2, x1, z1, y1, y2, bottom, top, outsideBottom, outsideTop); // Westen
+		// Die Kamera liegt im Ursprung: auf der Innenseite einer Wand, wenn sie zwischen Wand und Gegenwand steht.
+		wall(v, m, x1, z1, x2, z1, y1, y2, z1 < 0, bottom, top, outsideBottom, outsideTop); // Norden
+		wall(v, m, x2, z1, x2, z2, y1, y2, x2 > 0, bottom, top, outsideBottom, outsideTop); // Osten
+		wall(v, m, x2, z2, x1, z2, y1, y2, z2 > 0, bottom, top, outsideBottom, outsideTop); // Süden
+		wall(v, m, x1, z2, x1, z1, y1, y2, x1 < 0, bottom, top, outsideBottom, outsideTop); // Westen
 	}
 
 	/**
-	 * Eine senkrechte Fläche, einmal pro Seite: Minecraft zeichnet nur die Vorderseite eines Vierecks. Die Ecken
-	 * laufen im Uhrzeigersinn um den Bereich (von oben gesehen), dadurch zeigt die erste Fläche nach innen.
+	 * Eine senkrechte Fläche, nur von der Seite, auf der die Kamera ist: von innen deutlich, von außen schwach. So
+	 * stimmt es, egal ob Minecraft Rückseiten weglässt (1.21.11) oder beide Seiten zeichnet (26.x). Die Ecken laufen im
+	 * Uhrzeigersinn um den Bereich (von oben gesehen), dadurch zeigt die erste Reihenfolge nach innen.
 	 */
 	private static void wall(VertexConsumer v, Matrix4f m, float ax, float az, float bx, float bz,
-			float y1, float y2, int bottom, int top, int outsideBottom, int outsideTop) {
-		v.addVertex(m, ax, y1, az).setColor(bottom);
-		v.addVertex(m, bx, y1, bz).setColor(bottom);
-		v.addVertex(m, bx, y2, bz).setColor(top);
-		v.addVertex(m, ax, y2, az).setColor(top);
-
-		v.addVertex(m, ax, y2, az).setColor(outsideTop);
-		v.addVertex(m, bx, y2, bz).setColor(outsideTop);
-		v.addVertex(m, bx, y1, bz).setColor(outsideBottom);
-		v.addVertex(m, ax, y1, az).setColor(outsideBottom);
+			float y1, float y2, boolean inside, int bottom, int top, int outsideBottom, int outsideTop) {
+		if (inside) {
+			v.addVertex(m, ax, y1, az).setColor(bottom);
+			v.addVertex(m, bx, y1, bz).setColor(bottom);
+			v.addVertex(m, bx, y2, bz).setColor(top);
+			v.addVertex(m, ax, y2, az).setColor(top);
+		} else {
+			v.addVertex(m, ax, y2, az).setColor(outsideTop);
+			v.addVertex(m, bx, y2, bz).setColor(outsideTop);
+			v.addVertex(m, bx, y1, bz).setColor(outsideBottom);
+			v.addVertex(m, ax, y1, az).setColor(outsideBottom);
+		}
 	}
 
 	/** Kanten: unten voll, senkrecht über dem Beacon ausblendend und schwach weiter bis ganz oben. */

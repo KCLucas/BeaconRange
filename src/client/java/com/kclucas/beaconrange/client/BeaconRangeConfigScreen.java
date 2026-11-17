@@ -14,6 +14,7 @@ import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
 import net.minecraft.client.gui.layouts.LinearLayout;
 import net.minecraft.client.gui.narration.NarratableEntry;
+import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -95,7 +96,19 @@ public class BeaconRangeConfigScreen extends Screen {
 		list.add(levelColor(3, config.level3, defaults.level3, value -> config.level3 = value));
 		list.add(levelColor(4, config.level4, defaults.level4, value -> config.level4 = value));
 
+		list.add(new SectionRow(Component.translatable("beaconrange.config.section.conduits")));
+		list.add(toggle("beaconrange.config.conduits", config.conduits, defaults.conduits, value -> config.conduits = value));
+		Component conduitColorDescription = Component.translatable("beaconrange.config.conduit_color.desc");
+		list.add(option(Component.translatable("beaconrange.config.conduit_color"), value -> conduitColorDescription,
+				CycleButton.<BeaconRangeConfig.BoxColor>builder(BeaconRangeConfig.BoxColor::label, config.conduitColor)
+						.withValues(BeaconRangeConfig.BoxColor.values()),
+				defaults.conduitColor, value -> config.conduitColor = value));
+		list.add(toggle("beaconrange.config.conduit_attack", config.conduitAttack, defaults.conduitAttack,
+				value -> config.conduitAttack = value));
+
 		list.add(new SectionRow(Component.translatable("beaconrange.config.section.pinned")));
+		list.add(toggle("beaconrange.config.auto_unpin", config.autoUnpin, defaults.autoUnpin,
+				value -> config.autoUnpin = value));
 		list.add(new PinsRow());
 
 		list.add(new SectionRow(Component.translatable("beaconrange.config.section.help")));
@@ -141,6 +154,12 @@ public class BeaconRangeConfigScreen extends Screen {
 		if (this.list != null) {
 			this.list.updateSize(this.width, this.layout);
 		}
+	}
+
+	/** Auch speichern, wenn etwas anderes den Bildschirm ersetzt (Verbindung weg, Tod) - dann gibt es kein onClose. */
+	@Override
+	public void removed() {
+		BeaconRangeClient.getConfig().save();
 	}
 
 	@Override
@@ -267,6 +286,15 @@ public class BeaconRangeConfigScreen extends Screen {
 
 		int textWidth = control.getX() - 10 - row.getContentX();
 		List<FormattedCharSequence> lines = this.font.split(description, textWidth);
+		if (lines.size() > 2) {
+			// Passt nicht in zwei Zeilen (schmales Fenster): nach ganzen Wörtern kürzen und mit "…" enden.
+			String text = description.getString();
+			int cut = text.length();
+			while (cut > 0 && this.font.split(Component.literal(text.substring(0, cut).stripTrailing() + "…"), textWidth).size() > 2) {
+				cut = text.lastIndexOf(' ', cut - 1);
+			}
+			lines = this.font.split(Component.literal(text.substring(0, Math.max(cut, 0)).stripTrailing() + "…"), textWidth);
+		}
 		int shown = Math.min(lines.size(), 2);
 		int textY = row.getContentY() + (row.getContentHeight() - (11 + shown * 9)) / 2;
 		graphics.drawString(this.font, label, row.getContentX(), textY, COLOR_LABEL, true);
@@ -327,8 +355,20 @@ public class BeaconRangeConfigScreen extends Screen {
 	private class PinsRow extends Row {
 		private final Component label = Component.translatable("beaconrange.config.pins");
 		private final Button clearButton = Button.builder(Component.translatable("beaconrange.config.pins.clear"),
-				button -> BeaconRangeClient.getPins().clearWorld(BeaconRangeConfigScreen.this.minecraft))
-				.size(CONTROL_WIDTH, 20).build();
+				button -> confirmClear()).size(CONTROL_WIDTH, 20).build();
+
+		/** Alles lösen lässt sich nicht rückgängig machen - erst fragen. */
+		private void confirmClear() {
+			Minecraft client = BeaconRangeConfigScreen.this.minecraft;
+			int count = BeaconRangeClient.getPins().countWorld(client);
+			client.setScreen(new ConfirmScreen(yes -> {
+				if (yes) {
+					BeaconRangeClient.getPins().clearWorld(client);
+				}
+				client.setScreen(BeaconRangeConfigScreen.this);
+			}, Component.translatable("beaconrange.config.pins.clear.title"),
+					Component.translatable("beaconrange.config.pins.clear.question", count)));
+		}
 
 		@Override
 		int height() {

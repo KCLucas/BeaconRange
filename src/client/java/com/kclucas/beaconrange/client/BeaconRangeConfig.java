@@ -35,6 +35,16 @@ public class BeaconRangeConfig {
 	public BoxColor level2 = BoxColor.GREEN;
 	public BoxColor level3 = BoxColor.GOLD;
 	public BoxColor level4 = BoxColor.RED;
+	/**
+	 * Angepinnte Beacons und Conduits lösen, sobald dort keiner mehr steht. Aus für Server, die Blöcke verstecken
+	 * (Anti-Xray zeigt dann z. B. Tiefenschiefer statt des Beacons) - sonst gingen die Pins dort ständig verloren.
+	 */
+	public boolean autoUnpin = true;
+	/** Conduits zeigen ihren Bereich (Kugel) wie Beacons beim Anschauen und angepinnt. */
+	public boolean conduits = true;
+	public BoxColor conduitColor = BoxColor.TEAL;
+	/** Bei vollem Rahmen (42 Blöcke) auch den Würfel zeigen, in dem der Conduit Monster angreift. */
+	public boolean conduitAttack = true;
 
 	public BoxColor levelColor(int level) {
 		return switch (level) {
@@ -69,6 +79,7 @@ public class BeaconRangeConfig {
 		if (this.level2 == null) this.level2 = defaults.level2;
 		if (this.level3 == null) this.level3 = defaults.level3;
 		if (this.level4 == null) this.level4 = defaults.level4;
+		if (this.conduitColor == null) this.conduitColor = defaults.conduitColor;
 		return this;
 	}
 
@@ -137,6 +148,7 @@ public class BeaconRangeConfig {
 	/** Farben zur Auswahl, kräftig genug für Wände und Linien. */
 	public enum BoxColor {
 		AQUA(0x66CCFF),
+		TEAL(0x3FE0C0),
 		BLUE(0x4D7CFF),
 		GREEN(0x66FF80),
 		LIME(0xB8FF3C),
