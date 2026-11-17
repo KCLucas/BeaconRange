@@ -20,7 +20,7 @@ import java.util.List;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.argument;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal;
 
-/** /beaconrange list | remove x y z | clear */
+/** /beaconrange list | pin | remove x y z | clear */
 public final class BeaconRangeCommands {
 
 	private BeaconRangeCommands() {
@@ -30,6 +30,7 @@ public final class BeaconRangeCommands {
 		dispatcher.register(literal("beaconrange")
 				.executes(context -> list(context.getSource()))
 				.then(literal("list").executes(context -> list(context.getSource())))
+				.then(literal("pin").executes(context -> pin(context.getSource())))
 				.then(literal("clear").executes(context -> clear(context.getSource())))
 				.then(literal("remove")
 						.then(argument("pos", StringArgumentType.greedyString())
@@ -58,7 +59,7 @@ public final class BeaconRangeCommands {
 			List<PinStore.Pin> nearestFirst = here.stream()
 					.sorted(Comparator.comparingDouble(pin -> Vec3.atCenterOf(pin.pos()).distanceToSqr(player))).toList();
 			for (PinStore.Pin pin : nearestFirst) {
-				source.sendFeedback(entry(pin, player));
+				source.sendFeedback(entry(source, pin, player));
 			}
 		}
 		if (elsewhere > 0) {
@@ -68,21 +69,45 @@ public final class BeaconRangeCommands {
 		return here.size();
 	}
 
-	/** " ■ Stufe 4 · 50 Blöcke   12 64 -30   23 Blöcke entfernt [✖]" */
-	private static Component entry(PinStore.Pin pin, Vec3 player) {
+	/** Den angeschauten Beacon oder Conduit anpinnen bzw. lösen - Conduits haben kein Fenster mit Knopf. */
+	private static int pin(FabricClientCommandSource source) {
+		BlockPos pos = BeaconRangeClient.getLookedAt();
+		if (pos == null) {
+			source.sendError(Component.translatable("beaconrange.pin.no_beacon"));
+			return 0;
+		}
+		BeaconRangeClient.togglePin(source.getClient(), pos);
+		return 1;
+	}
+
+	/** " ■ Stufe 4 · 50 Blöcke   12 64 -30   23 Blöcke entfernt [✖]" (Conduit: " ● Conduit · 96 Blöcke ...") */
+	private static Component entry(FabricClientCommandSource source, PinStore.Pin pin, Vec3 player) {
 		BlockPos pos = pin.pos();
-		MutableComponent line = Component.literal(" ■ ");
-		if (pin.level() > 0) {
+		boolean conduit = pin.kind() == PinStore.Kind.CONDUIT;
+		MutableComponent line = Component.literal(conduit ? " ● " : " ■ ");
+		if (conduit && Conduits.range(pin.level()) > 0) {
+			int color = BeaconRangeClient.getConfig().conduitColor.rgb;
+			line.withColor(color).append(Component.translatable("beaconrange.conduit.list", Conduits.range(pin.level()))
+					.withColor(color));
+		} else if (!conduit && pin.level() > 0) {
 			int color = BeaconRangeClient.getConfig().levelColor(pin.level()).rgb;
 			line.withColor(color).append(Component.translatable("beaconrange.info", pin.level(), Beacons.range(pin.level()))
 					.withColor(color));
 		} else {
-			line.withStyle(ChatFormatting.GRAY).append(Component.translatable("beaconrange.info.inactive"));
+			line.withStyle(ChatFormatting.GRAY).append(Component.translatable(
+					conduit ? "beaconrange.conduit.list.inactive" : "beaconrange.info.inactive"));
 		}
 		int distance = Mth.floor(Math.sqrt(Vec3.atCenterOf(pos).distanceToSqr(player)));
 		line.append(Component.literal("   " + text(pos)).withStyle(ChatFormatting.AQUA))
 				.append(Component.literal("   ").append(Component.translatable("beaconrange.command.list.distance", distance))
 						.withStyle(ChatFormatting.DARK_GRAY));
+		// Steht dort gerade keiner (abgebaut oder vom Server versteckt) und wird nicht automatisch gelöst: dazusagen.
+		var level = source.getClient().level;
+		if (level != null && level.isLoaded(pos)
+				&& !(conduit ? Conduits.isConduit(level, pos) : Beacons.isBeacon(level, pos))) {
+			line.append(Component.literal("   ").append(Component.translatable("beaconrange.command.list.missing"))
+					.withStyle(ChatFormatting.GOLD));
+		}
 		MutableComponent unpin = Component.literal(" [✖]").withStyle(style -> style
 				.withColor(ChatFormatting.RED)
 				.withClickEvent(new ClickEvent.RunCommand("/beaconrange remove " + text(pos)))

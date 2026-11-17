@@ -8,7 +8,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
-/** Unter dem Fadenkreuz: Stufe und Reichweite des Beacons, auf den man schaut. */
+/** Unter dem Fadenkreuz: Stufe und Reichweite des Beacons bzw. Conduits, auf den man schaut. */
 public final class LookInfoHud {
 
 	private LookInfoHud() {
@@ -21,7 +21,10 @@ public final class LookInfoHud {
 				|| client.gui.screen() != null) {
 			return;
 		}
-		Component text = describe(client, pos, BeaconRangeClient.getLookedAtLevel(), true);
+		int level = BeaconRangeClient.getLookedAtLevel();
+		Component text = BeaconRangeClient.getLookedAtKind() == PinStore.Kind.CONDUIT
+				? describeConduit(client, pos, level)
+				: describe(client, pos, level, true);
 		int x = graphics.guiWidth() / 2;
 		int y = graphics.guiHeight() / 2 + 14;
 		graphics.centeredText(client.font, text, x, y, 0xFFFFFFFF);
@@ -34,7 +37,28 @@ public final class LookInfoHud {
 		}
 		int color = BeaconRangeClient.getConfig().levelColor(level).rgb;
 		MutableComponent text = Component.translatable("beaconrange.info", level, Beacons.range(level)).withColor(color);
-		if (showPinned && BeaconRangeClient.getPins().isPinned(client, pos)) {
+		return showPinned ? withPinned(client, pos, text) : text;
+	}
+
+	/** "Conduit · 96 Blöcke · Rahmen 42/42 · greift an · Angepinnt" in der Conduit-Farbe. */
+	public static MutableComponent describeConduit(Minecraft client, BlockPos pos, int frameBlocks) {
+		if (Conduits.range(frameBlocks) <= 0) {
+			return Component.translatable("beaconrange.conduit.inactive", frameBlocks, Conduits.MIN_FRAME)
+					.withStyle(ChatFormatting.GRAY);
+		}
+		int color = BeaconRangeClient.getConfig().conduitColor.rgb;
+		MutableComponent text = Component.translatable("beaconrange.conduit.info", Conduits.range(frameBlocks), frameBlocks,
+				Conduits.FULL_FRAME).withColor(color);
+		if (Conduits.attacks(frameBlocks)) {
+			text.append(Component.literal(" · ").withStyle(ChatFormatting.GRAY))
+					.append(Component.translatable("beaconrange.conduit.attacks", Conduits.ATTACK_RANGE)
+							.withStyle(ChatFormatting.RED));
+		}
+		return withPinned(client, pos, text);
+	}
+
+	private static MutableComponent withPinned(Minecraft client, BlockPos pos, MutableComponent text) {
+		if (BeaconRangeClient.getPins().isPinned(client, pos)) {
 			text.append(Component.literal(" · ").withStyle(ChatFormatting.GRAY))
 					.append(Component.translatable("beaconrange.info.pinned").withStyle(ChatFormatting.WHITE));
 		}
