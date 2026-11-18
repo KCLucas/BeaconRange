@@ -5,8 +5,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -203,8 +201,8 @@ public class OnboardingScreen extends Screen {
 	}
 
 	@Override
-	public boolean keyPressed(KeyEvent event) {
-		switch (event.key()) {
+	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+		switch (keyCode) {
 			case InputConstants.KEY_RIGHT, InputConstants.KEY_RETURN, InputConstants.KEY_NUMPADENTER -> {
 				if (this.index >= 0 || selectedCount() > 0) {
 					next();
@@ -216,19 +214,19 @@ public class OnboardingScreen extends Screen {
 				return true;
 			}
 			default -> {
-				return super.keyPressed(event);
+				return super.keyPressed(keyCode, scanCode, modifiers);
 			}
 		}
 	}
 
 	@Override
-	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-		if (super.mouseClicked(event, doubleClick)) {
+	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+		if (super.mouseClicked(mouseX, mouseY, button)) {
 			return true;
 		}
 		// Auf der Übersicht wählt ein Klick auf eine Mod-Karte sie an oder ab.
-		if (this.index < 0 && this.pending.size() > 1 && event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
-			int card = cardAt(event.x(), event.y());
+		if (this.index < 0 && this.pending.size() > 1 && button == InputConstants.MOUSE_BUTTON_LEFT) {
+			int card = cardAt(mouseX, mouseY);
 			if (card >= 0) {
 				this.selected[card] = !this.selected[card];
 				rebuildWidgets();

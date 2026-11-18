@@ -53,7 +53,7 @@ public final class RangeRenderer {
 
 	/**
 	 * Wände: genau wie debugFilledBox in 1.21.11 - Vierecke, halbtransparent, Rückseiten weggelassen und ohne in den
-	 * Tiefenpuffer zu schreiben. In 1.21.9 zeichnet debugFilledBox Dreiecksstreifen und schreibt die Tiefe: Kanten
+	 * Tiefenpuffer zu schreiben. Bis 1.21.10 zeichnet debugFilledBox Dreiecksstreifen und schreibt die Tiefe: Kanten
 	 * und Kugelgitter hinter einer Wand würden verschwinden.
 	 */
 	private static final RenderPipeline WALLS_PIPELINE = RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
@@ -65,7 +65,7 @@ public final class RangeRenderer {
 					.setLayeringState(RenderStateShard.VIEW_OFFSET_Z_LAYERING)
 					.createCompositeState(false));
 	/**
-	 * Linien wie RenderType.lines(), aber mit fester Breite: in 1.21.9 gibt es noch keine Breite pro Linie
+	 * Linien wie RenderType.lines(), aber mit fester Breite: bis 1.21.10 gibt es noch keine Breite pro Linie
 	 * (setLineWidth kam mit 1.21.11), sie hängt am RenderType.
 	 */
 	private static final Map<Float, RenderType> LINE_TYPES = new LinkedHashMap<>();

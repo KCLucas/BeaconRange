@@ -38,8 +38,8 @@ public class BeaconRangeClient implements ClientModInitializer {
 	/** So weit reicht "Anschauen": ein Beacon in Sichtweite zeigt seinen Bereich, nicht nur in Griffweite. */
 	public static final double LOOK_DISTANCE = 96.0;
 
-	private static final KeyMapping.Category CATEGORY =
-			KeyMapping.Category.register(ResourceLocation.fromNamespaceAndPath(MOD_ID, "main"));
+	/** Vor 1.21.9 ist die Kategorie nur ihr Übersetzungsschlüssel (gleicher Schlüssel wie KeyMapping.Category). */
+	private static final String CATEGORY = "key.category." + MOD_ID + ".main";
 
 	private static KeyMapping pinKey;
 	private static KeyMapping toggleKey;
@@ -118,8 +118,8 @@ public class BeaconRangeClient implements ClientModInitializer {
 				"key.beaconrange.settings", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
 
 		ClientTickEvents.END_CLIENT_TICK.register(BeaconRangeClient::onClientTick);
-		// Gezeichnet wird aus mixin.LevelRendererMixin (vor dem durchsichtigen Gelände) - Fabric API für 1.21.9 hat
-		// kein WorldRenderEvents.
+		// Gezeichnet wird aus mixin.LevelRendererMixin (vor dem durchsichtigen Gelände) - WorldRenderEvents von Fabric
+		// API für 1.21.6 hat kein BEFORE_TRANSLUCENT.
 		HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR,
 				ResourceLocation.fromNamespaceAndPath(MOD_ID, "look_info"), LookInfoHud::render);
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
