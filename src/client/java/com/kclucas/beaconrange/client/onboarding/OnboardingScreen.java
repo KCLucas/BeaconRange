@@ -250,15 +250,11 @@ public class OnboardingScreen extends Screen {
 
 	@Override
 	public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		// Wie Screen.renderBackground, nur mit dem Abdunkeln zwischen Unschärfe und Menü-Hintergrund - dieselbe
-		// Reihenfolge, die 1.21.6+ ergibt. Vor 1.21.6 wird nicht gesammelt: vor dem Panorama abgedunkelt, verdeckt die
-		// Fläche das Panorama und der Hintergrund bleibt schwarz.
-		if (this.minecraft.level == null) {
-			renderPanorama(graphics, partialTick);
-		}
-		renderBlurredBackground();
+		// Erst der normale Hintergrund (Panorama, Unschärfe, Menü-Hintergrund), dann abdunkeln - dieselbe Reihenfolge wie
+		// ab 1.21.6, wo render() die Fläche nach dem gesammelten Hintergrund zeichnet. Vor 1.21.6 wird nicht gesammelt:
+		// in render() vor super.render() abgedunkelt, würde das Panorama die Fläche übermalen bzw. der Hintergrund schwarz.
+		super.renderBackground(graphics, mouseX, mouseY, partialTick);
 		graphics.fill(0, 0, this.width, this.height, COLOR_DIM);
-		renderMenuBackground(graphics);
 	}
 
 	@Override

@@ -280,7 +280,9 @@ public class BeaconRangeConfigScreen extends Screen {
 			Font font = BeaconRangeConfigScreen.this.font;
 			int textWidth = font.width(this.title);
 			int centerX = getContentXMiddle();
-			int textY = getContentBottom() - 12;
+			// In 1.21.5 sind alle Zeilen gleich hoch (38 statt 26 wie ab 1.21.9): die 12 Pixel mehr gleichmäßig über und
+			// unter die Überschrift verteilen, statt alles darüber zu lassen.
+			int textY = getContentY() + 20;
 			graphics.drawString(font, this.title, centerX - textWidth / 2, textY, COLOR_ACCENT, true);
 
 			int lineY = textY + 4;

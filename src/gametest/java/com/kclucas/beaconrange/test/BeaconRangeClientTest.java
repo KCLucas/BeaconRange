@@ -377,7 +377,8 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 			double[] middle = context.computeOnClient(c -> new double[]{c.getWindow().getScreenWidth() / 2.0,
 					c.getWindow().getScreenHeight() / 2.0});
 			context.getInput().setCursorPos(middle[0], middle[1]);
-			context.getInput().scroll(-20);
+			// Bis ganz nach unten: in 1.21.5 sind die Überschriften so hoch wie die Optionen, die Liste ist länger.
+			context.getInput().scroll(-40);
 			context.waitTicks(5);
 			context.takeScreenshot("beaconrange-7b-einstellungen-unten");
 			context.runOnClient(c -> c.setScreen(null));
