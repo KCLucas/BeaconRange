@@ -82,7 +82,39 @@ public final class RangeRenderer {
 						.createCompositeState(false)));
 	}
 
-	public static void render(PoseStack poseStack, MultiBufferSource buffers, Vec3 camera, List<BeaconArea> areas,
+	/**
+	 * Wände und Kugelflächen - vor dem durchsichtigen Gelände und gleich abgeschlossen, wie in 1.21.11 (dort schließt
+	 * der Wechsel auf die Linien den Stapel der Wände, bevor Wasser und Glas kommen).
+	 */
+	public static void renderWalls(PoseStack poseStack, MultiBufferSource.BufferSource buffers, Vec3 camera,
+			List<BeaconArea> areas, List<ConduitArea> conduits) {
+		Minecraft client = Minecraft.getInstance();
+		BeaconRangeConfig config = BeaconRangeClient.getConfig();
+		if (areas.isEmpty() && conduits.isEmpty() || client.player == null
+				|| config.walls == BeaconRangeConfig.WallStyle.OFF) {
+			return;
+		}
+		double maxDistance = maxDistance(client);
+		Matrix4f matrix = poseStack.last().pose();
+		VertexConsumer fill = buffers.getBuffer(WALLS);
+		for (BeaconArea area : areas) {
+			if (near(area, camera, maxDistance)) {
+				walls(fill, matrix, area, camera, config);
+			}
+		}
+		for (ConduitArea conduit : conduits) {
+			if (near(conduit, camera, maxDistance)) {
+				sphere(fill, matrix, conduit, camera, config.opacity.alpha * SPHERE_ALPHA);
+			}
+		}
+		buffers.endBatch(WALLS);
+	}
+
+	/**
+	 * Kanten, Gitter und Linien - nach dem durchsichtigen Gelände, wie in 1.21.11 (dort bleibt der eine Linien-Stapel
+	 * bis zum Ende des Durchgangs offen): unter Wasser und hinter Glas sind alle Linien gleich verdeckt.
+	 */
+	public static void renderLines(PoseStack poseStack, MultiBufferSource buffers, Vec3 camera, List<BeaconArea> areas,
 			List<ConduitArea> conduits) {
 		Minecraft client = Minecraft.getInstance();
 		if (areas.isEmpty() && conduits.isEmpty() || client.player == null) {
@@ -95,23 +127,7 @@ public final class RangeRenderer {
 		double lineY = Mth.lerp(partialTick, player.yo, player.getY()) + 0.1;
 		double playerX = Mth.lerp(partialTick, player.xo, player.getX());
 		double playerZ = Mth.lerp(partialTick, player.zo, player.getZ());
-		// Nur bis zur Sichtweite: dahinter liegt Nebel, die Wände würden ungetrübt aus ihm herausleuchten.
-		double maxDistance = client.options.getEffectiveRenderDistance() * 16.0;
-
-		Matrix4f matrix = poseStack.last().pose();
-		if (config.walls != BeaconRangeConfig.WallStyle.OFF) {
-			VertexConsumer fill = buffers.getBuffer(WALLS);
-			for (BeaconArea area : areas) {
-				if (near(area, camera, maxDistance)) {
-					walls(fill, matrix, area, camera, config);
-				}
-			}
-			for (ConduitArea conduit : conduits) {
-				if (near(conduit, camera, maxDistance)) {
-					sphere(fill, matrix, conduit, camera, config.opacity.alpha * SPHERE_ALPHA);
-				}
-			}
-		}
+		double maxDistance = maxDistance(client);
 
 		Lines lines = new Lines();
 		PoseStack.Pose pose = poseStack.last();
@@ -141,6 +157,11 @@ public final class RangeRenderer {
 			}
 		}
 		lines.draw(buffers, pose);
+	}
+
+	/** Nur bis zur Sichtweite: dahinter liegt Nebel, die Wände würden ungetrübt aus ihm herausleuchten. */
+	private static double maxDistance(Minecraft client) {
+		return client.options.getEffectiveRenderDistance() * 16.0;
 	}
 
 	/**
@@ -378,7 +399,7 @@ public final class RangeRenderer {
 
 	/**
 	 * Sammelt die Linien nach Breite und zeichnet jede Breite in einem Rutsch - ein Wechsel des RenderType schließt den
-	 * vorigen ab, einzeln abwechselnd ginge das nicht.
+	 * vorigen ab, einzeln abwechselnd ginge das nicht. Die letzte Breite schließt Vanilla am Ende des Durchgangs ab.
 	 */
 	private static final class Lines {
 		private final Map<Float, FloatArrayList> points = new LinkedHashMap<>();
