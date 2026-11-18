@@ -181,6 +181,9 @@ public class BeaconRangeConfigScreen extends Screen {
 	 */
 	private class OptionList extends ContainerObjectSelectionList<Row> {
 
+		/** Zeile unter der Maus aus dem letzten Bild - Vanilla rechnet hier mit gleich hohen Zeilen. */
+		private @Nullable Row hoveredRow;
+
 		OptionList(Minecraft minecraft, int width, HeaderAndFooterLayout layout) {
 			super(minecraft, width, layout.getContentHeight(), layout.getHeaderHeight(), OPTION_HEIGHT);
 		}
@@ -247,6 +250,7 @@ public class BeaconRangeConfigScreen extends Screen {
 		@Override
 		protected void renderListItems(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
 			Row hovered = isMouseOver(mouseX, mouseY) ? rowAt(mouseX, mouseY) : null;
+			this.hoveredRow = hovered;
 			int left = getRowLeft();
 			int width = getRowWidth();
 			int y = getY() + 2 - (int) scrollAmount();
@@ -259,6 +263,20 @@ public class BeaconRangeConfigScreen extends Screen {
 				}
 				y += height;
 			}
+		}
+
+		/** Der Erzähler liest die Zeile vor, die wirklich unter der Maus ist (wie in 1.21.9). */
+		@Override
+		protected @Nullable Row getHovered() {
+			return this.hoveredRow;
+		}
+
+		@Override
+		public NarratableEntry.NarrationPriority narrationPriority() {
+			if (isFocused()) {
+				return NarratableEntry.NarrationPriority.FOCUSED;
+			}
+			return this.hoveredRow != null ? NarratableEntry.NarrationPriority.HOVERED : NarratableEntry.NarrationPriority.NONE;
 		}
 
 		/** Mit der Tastatur angewählte Zeile ganz ins Bild holen (wie scrollToEntry in 1.21.9). */
