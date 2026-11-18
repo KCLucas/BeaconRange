@@ -91,7 +91,7 @@ Under *Options > Controls > Key Binds > Beacon Range* you can bind keys to **pin
 
 - Purely client-side: works on any server, nothing needs to be installed there.
 - A short tour shows how it works the first time you start a profile with this mod. You can open it again under *Settings > Help*.
-- For Minecraft 1.21.11, 26.2 and 26.3.
+- For Minecraft 1.21.4 to 26.3.
 - English and German.
 
 Requires [Fabric API](https://modrinth.com/mod/fabric-api). Mod Menu is optional.
