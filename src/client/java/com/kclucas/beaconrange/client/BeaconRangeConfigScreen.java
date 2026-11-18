@@ -19,7 +19,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
-import org.jspecify.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -74,13 +74,15 @@ public class BeaconRangeConfigScreen extends Screen {
 		list.add(toggle("beaconrange.config.look_info", config.lookInfo, defaults.lookInfo,
 				value -> config.lookInfo = value));
 		list.add(option(Component.translatable("beaconrange.config.walls"), BeaconRangeConfig.WallStyle::description,
-				CycleButton.<BeaconRangeConfig.WallStyle>builder(BeaconRangeConfig.WallStyle::label, config.walls)
-						.withValues(BeaconRangeConfig.WallStyle.values()),
+				CycleButton.<BeaconRangeConfig.WallStyle>builder(BeaconRangeConfig.WallStyle::label)
+						.withValues(BeaconRangeConfig.WallStyle.values())
+						.withInitialValue(config.walls),
 				defaults.walls, value -> config.walls = value));
 		Component opacityDescription = Component.translatable("beaconrange.config.opacity.desc");
 		list.add(option(Component.translatable("beaconrange.config.opacity"), value -> opacityDescription,
-				CycleButton.<BeaconRangeConfig.Opacity>builder(BeaconRangeConfig.Opacity::label, config.opacity)
-						.withValues(BeaconRangeConfig.Opacity.values()),
+				CycleButton.<BeaconRangeConfig.Opacity>builder(BeaconRangeConfig.Opacity::label)
+						.withValues(BeaconRangeConfig.Opacity.values())
+						.withInitialValue(config.opacity),
 				defaults.opacity, value -> config.opacity = value));
 		list.add(toggle("beaconrange.config.edges", config.edges, defaults.edges, value -> config.edges = value));
 		list.add(toggle("beaconrange.config.height_line", config.heightLine, defaults.heightLine,
@@ -88,8 +90,9 @@ public class BeaconRangeConfigScreen extends Screen {
 
 		list.add(new SectionRow(Component.translatable("beaconrange.config.section.colors")));
 		list.add(option(Component.translatable("beaconrange.config.color_mode"), BeaconRangeConfig.ColorMode::description,
-				CycleButton.<BeaconRangeConfig.ColorMode>builder(BeaconRangeConfig.ColorMode::label, config.colorMode)
-						.withValues(BeaconRangeConfig.ColorMode.values()),
+				CycleButton.<BeaconRangeConfig.ColorMode>builder(BeaconRangeConfig.ColorMode::label)
+						.withValues(BeaconRangeConfig.ColorMode.values())
+						.withInitialValue(config.colorMode),
 				defaults.colorMode, value -> config.colorMode = value));
 		list.add(levelColor(1, config.level1, defaults.level1, value -> config.level1 = value));
 		list.add(levelColor(2, config.level2, defaults.level2, value -> config.level2 = value));
@@ -100,8 +103,9 @@ public class BeaconRangeConfigScreen extends Screen {
 		list.add(toggle("beaconrange.config.conduits", config.conduits, defaults.conduits, value -> config.conduits = value));
 		Component conduitColorDescription = Component.translatable("beaconrange.config.conduit_color.desc");
 		list.add(option(Component.translatable("beaconrange.config.conduit_color"), value -> conduitColorDescription,
-				CycleButton.<BeaconRangeConfig.BoxColor>builder(BeaconRangeConfig.BoxColor::label, config.conduitColor)
-						.withValues(BeaconRangeConfig.BoxColor.values()),
+				CycleButton.<BeaconRangeConfig.BoxColor>builder(BeaconRangeConfig.BoxColor::label)
+						.withValues(BeaconRangeConfig.BoxColor.values())
+						.withInitialValue(config.conduitColor),
 				defaults.conduitColor, value -> config.conduitColor = value));
 		list.add(toggle("beaconrange.config.conduit_attack", config.conduitAttack, defaults.conduitAttack,
 				value -> config.conduitAttack = value));
@@ -126,7 +130,7 @@ public class BeaconRangeConfigScreen extends Screen {
 
 	private OptionRow<Boolean> toggle(String key, boolean value, boolean defaultValue, Consumer<Boolean> setter) {
 		Component description = Component.translatable(key + ".desc");
-		return option(Component.translatable(key), v -> description, CycleButton.booleanBuilder(ON, OFF, value),
+		return option(Component.translatable(key), v -> description, CycleButton.booleanBuilder(ON, OFF).withInitialValue(value),
 				defaultValue, setter);
 	}
 
@@ -134,8 +138,9 @@ public class BeaconRangeConfigScreen extends Screen {
 			BeaconRangeConfig.BoxColor defaultValue, Consumer<BeaconRangeConfig.BoxColor> setter) {
 		Component description = Component.translatable("beaconrange.config.level.desc", Beacons.range(level));
 		return option(Component.translatable("beaconrange.config.level", level), v -> description,
-				CycleButton.<BeaconRangeConfig.BoxColor>builder(BeaconRangeConfig.BoxColor::label, value)
-						.withValues(BeaconRangeConfig.BoxColor.values()),
+				CycleButton.<BeaconRangeConfig.BoxColor>builder(BeaconRangeConfig.BoxColor::label)
+						.withValues(BeaconRangeConfig.BoxColor.values())
+						.withInitialValue(value),
 				defaultValue, setter);
 	}
 

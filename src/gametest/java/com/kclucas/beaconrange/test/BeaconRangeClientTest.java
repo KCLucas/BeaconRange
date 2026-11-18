@@ -82,9 +82,9 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 			TestServerContext server = world.getServer();
 			server.runCommand("gamemode creative @a");
 			// Ruhige, gleichbleibende Bilder: keine Tiere, immer Vormittag, kein Wetter.
-			server.runCommand("gamerule spawn_mobs false");
-			server.runCommand("gamerule advance_time false");
-			server.runCommand("gamerule advance_weather false");
+			server.runCommand("gamerule doMobSpawning false");
+			server.runCommand("gamerule doDaylightCycle false");
+			server.runCommand("gamerule doWeatherCycle false");
 			server.runCommand("time set 1500");
 			server.runCommand("weather clear");
 

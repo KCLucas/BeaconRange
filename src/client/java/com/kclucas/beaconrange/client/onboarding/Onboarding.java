@@ -11,8 +11,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
-import org.jspecify.annotations.Nullable;
+import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +59,7 @@ public final class Onboarding {
 	private static int stableTicks;
 
 	/** Eine Seite der Tour: Überschrift, Erklärung und optional ein Bild im Format 16:9. */
-	public record Page(Component title, Component text, @Nullable Identifier image) {
+	public record Page(Component title, Component text, @Nullable ResourceLocation image) {
 	}
 
 	/** Was in einer Version neu ist, als kurze Stichpunkte. */
@@ -70,7 +70,7 @@ public final class Onboarding {
 	 * Tour und Änderungen einer Mod. {@code releases} am besten neueste zuerst; gezeigt werden nach einem Update
 	 * alle Einträge, die neuer sind als die zuletzt gesehene Version.
 	 */
-	public record Tutorial(String id, Component name, Component description, Identifier icon, List<Page> pages,
+	public record Tutorial(String id, Component name, Component description, ResourceLocation icon, List<Page> pages,
 			List<Release> releases) {
 
 		/** Die installierte Version dieser Mod, laut Fabric Loader. */
@@ -333,7 +333,7 @@ public final class Onboarding {
 	 */
 	private static @Nullable Tutorial decode(Map<String, Object> entry) {
 		if (!(entry.get("id") instanceof String id) || !(entry.get("name") instanceof Component name)
-				|| !(entry.get("icon") instanceof Identifier icon) || !(entry.get("pages") instanceof List<?> rawPages)) {
+				|| !(entry.get("icon") instanceof ResourceLocation icon) || !(entry.get("pages") instanceof List<?> rawPages)) {
 			return null;
 		}
 		Component description = entry.get("description") instanceof Component component ? component : Component.empty();
@@ -342,7 +342,7 @@ public final class Onboarding {
 		for (Object raw : rawPages) {
 			if (raw instanceof Map<?, ?> page && page.get("title") instanceof Component title
 					&& page.get("text") instanceof Component text) {
-				pages.add(new Page(title, text, page.get("image") instanceof Identifier image ? image : null));
+				pages.add(new Page(title, text, page.get("image") instanceof ResourceLocation image ? image : null));
 			}
 		}
 		List<Release> releases = new ArrayList<>();

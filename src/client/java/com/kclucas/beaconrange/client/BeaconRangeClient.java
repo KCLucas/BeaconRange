@@ -8,7 +8,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.ChatFormatting;
@@ -18,14 +17,14 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
-import org.jspecify.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,7 +39,7 @@ public class BeaconRangeClient implements ClientModInitializer {
 	public static final double LOOK_DISTANCE = 96.0;
 
 	private static final KeyMapping.Category CATEGORY =
-			KeyMapping.Category.register(Identifier.fromNamespaceAndPath(MOD_ID, "main"));
+			KeyMapping.Category.register(ResourceLocation.fromNamespaceAndPath(MOD_ID, "main"));
 
 	private static KeyMapping pinKey;
 	private static KeyMapping toggleKey;
@@ -119,9 +118,10 @@ public class BeaconRangeClient implements ClientModInitializer {
 				"key.beaconrange.settings", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
 
 		ClientTickEvents.END_CLIENT_TICK.register(BeaconRangeClient::onClientTick);
-		WorldRenderEvents.BEFORE_TRANSLUCENT.register(context -> RangeRenderer.render(context, visible, visibleConduits));
+		// Gezeichnet wird aus mixin.LevelRendererMixin (vor dem durchsichtigen Gelände) - Fabric API für 1.21.9 hat
+		// kein WorldRenderEvents.
 		HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR,
-				Identifier.fromNamespaceAndPath(MOD_ID, "look_info"), LookInfoHud::render);
+				ResourceLocation.fromNamespaceAndPath(MOD_ID, "look_info"), LookInfoHud::render);
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
 				BeaconRangeCommands.register(dispatcher));
 		ScreenEvents.AFTER_INIT.register(BeaconScreenButton::afterInit);
@@ -141,24 +141,24 @@ public class BeaconRangeClient implements ClientModInitializer {
 		return new Onboarding.Tutorial(MOD_ID,
 				Component.literal("Beacon Range"),
 				Component.translatable("beaconrange.tutorial.description"),
-				Identifier.fromNamespaceAndPath(MOD_ID, "icon.png"),
+				ResourceLocation.fromNamespaceAndPath(MOD_ID, "icon.png"),
 				List.of(
 						new Onboarding.Page(
 								Component.translatable("beaconrange.tutorial.look.title"),
 								Component.translatable("beaconrange.tutorial.look.text"),
-								Identifier.fromNamespaceAndPath(MOD_ID, "textures/tutorial/look.png")),
+								ResourceLocation.fromNamespaceAndPath(MOD_ID, "textures/tutorial/look.png")),
 						new Onboarding.Page(
 								Component.translatable("beaconrange.tutorial.pin.title"),
 								Component.translatable("beaconrange.tutorial.pin.text"),
-								Identifier.fromNamespaceAndPath(MOD_ID, "textures/tutorial/pin.png")),
+								ResourceLocation.fromNamespaceAndPath(MOD_ID, "textures/tutorial/pin.png")),
 						new Onboarding.Page(
 								Component.translatable("beaconrange.tutorial.conduit.title"),
 								Component.translatable("beaconrange.tutorial.conduit.text"),
-								Identifier.fromNamespaceAndPath(MOD_ID, "textures/tutorial/conduit.png")),
+								ResourceLocation.fromNamespaceAndPath(MOD_ID, "textures/tutorial/conduit.png")),
 						new Onboarding.Page(
 								Component.translatable("beaconrange.tutorial.settings.title"),
 								Component.translatable("beaconrange.tutorial.settings.text"),
-								Identifier.fromNamespaceAndPath(MOD_ID, "textures/tutorial/settings.png"))),
+								ResourceLocation.fromNamespaceAndPath(MOD_ID, "textures/tutorial/settings.png"))),
 				List.of(
 						new Onboarding.Release("2.1.0", List.of(
 								Component.translatable("beaconrange.news.2_1_0.conduit"),

@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2.1.0
+- Made for Minecraft 1.21.9 - 1.21.10
 - Conduits: look at a conduit to see its range as a sphere - 32 to 96 blocks, depending on its frame. With a full frame a red box shows where it attacks mobs
 - New `/beaconrange pin`: pins the beacon or conduit you look at (the pin key does the same)
 - New lock button next to "Pin range": turn off automatic unpinning on servers that hide blocks (anti-xray shows deepslate instead of your beacon), so your pins stay. Also in the settings

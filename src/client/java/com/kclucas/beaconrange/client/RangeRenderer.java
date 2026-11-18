@@ -1,18 +1,26 @@
 package com.kclucas.beaconrange.client;
 
+import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
+import it.unimi.dsi.fastutil.floats.FloatArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.RenderStateShard;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.OptionalDouble;
 
 /**
  * Zeichnet die Bereiche: bei Beacons halbtransparente Wände (unten kräftig, über dem Beacon nach oben ausblendend),
@@ -43,18 +51,44 @@ public final class RangeRenderer {
 	/** Würfel, in dem ein voller Conduit Monster angreift: rot. */
 	private static final int ATTACK_COLOR = 0xFF5C5C;
 
+	/**
+	 * Wände: genau wie debugFilledBox in 1.21.11 - Vierecke, halbtransparent, Rückseiten weggelassen und ohne in den
+	 * Tiefenpuffer zu schreiben. In 1.21.9 zeichnet debugFilledBox Dreiecksstreifen und schreibt die Tiefe: Kanten
+	 * und Kugelgitter hinter einer Wand würden verschwinden.
+	 */
+	private static final RenderPipeline WALLS_PIPELINE = RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
+			.withLocation(ResourceLocation.fromNamespaceAndPath(BeaconRangeClient.MOD_ID, "pipeline/walls"))
+			.withDepthWrite(false)
+			.build();
+	private static final RenderType WALLS = RenderType.create("beaconrange_walls", 1536, false, true,
+			WALLS_PIPELINE, RenderType.CompositeState.builder()
+					.setLayeringState(RenderStateShard.VIEW_OFFSET_Z_LAYERING)
+					.createCompositeState(false));
+	/**
+	 * Linien wie RenderType.lines(), aber mit fester Breite: in 1.21.9 gibt es noch keine Breite pro Linie
+	 * (setLineWidth kam mit 1.21.11), sie hängt am RenderType.
+	 */
+	private static final Map<Float, RenderType> LINE_TYPES = new LinkedHashMap<>();
+
 	private RangeRenderer() {
 	}
 
-	public static void render(WorldRenderContext context, List<BeaconArea> areas, List<ConduitArea> conduits) {
-		PoseStack poseStack = context.matrices();
-		MultiBufferSource buffers = context.consumers();
+	private static RenderType lineType(float width) {
+		return LINE_TYPES.computeIfAbsent(width, w -> RenderType.create("beaconrange_lines_" + w, 1536,
+				RenderPipelines.LINES, RenderType.CompositeState.builder()
+						.setLineState(new RenderStateShard.LineStateShard(OptionalDouble.of(w)))
+						.setLayeringState(RenderStateShard.VIEW_OFFSET_Z_LAYERING)
+						.setOutputState(RenderStateShard.ITEM_ENTITY_TARGET)
+						.createCompositeState(false)));
+	}
+
+	public static void render(PoseStack poseStack, MultiBufferSource buffers, Vec3 camera, List<BeaconArea> areas,
+			List<ConduitArea> conduits) {
 		Minecraft client = Minecraft.getInstance();
-		if (areas.isEmpty() && conduits.isEmpty() || poseStack == null || buffers == null || client.player == null) {
+		if (areas.isEmpty() && conduits.isEmpty() || client.player == null) {
 			return;
 		}
 		BeaconRangeConfig config = BeaconRangeClient.getConfig();
-		Vec3 camera = context.worldState().cameraRenderState.pos;
 		Player player = client.player;
 		float partialTick = client.getDeltaTracker().getGameTimeDeltaPartialTick(false);
 		// knapp über den Füßen: zeigt die Grenze am Boden, auf dem man steht
@@ -66,7 +100,7 @@ public final class RangeRenderer {
 
 		Matrix4f matrix = poseStack.last().pose();
 		if (config.walls != BeaconRangeConfig.WallStyle.OFF) {
-			VertexConsumer fill = buffers.getBuffer(RenderTypes.debugFilledBox());
+			VertexConsumer fill = buffers.getBuffer(WALLS);
 			for (BeaconArea area : areas) {
 				if (near(area, camera, maxDistance)) {
 					walls(fill, matrix, area, camera, config);
@@ -79,7 +113,7 @@ public final class RangeRenderer {
 			}
 		}
 
-		VertexConsumer lines = buffers.getBuffer(RenderTypes.lines());
+		Lines lines = new Lines();
 		PoseStack.Pose pose = poseStack.last();
 		for (BeaconArea area : areas) {
 			if (!near(area, camera, maxDistance)) {
@@ -106,6 +140,7 @@ public final class RangeRenderer {
 				cube(lines, pose, Conduits.attackArea(conduit.pos()), camera, argb(ATTACK_COLOR, 1.0F), EDGE_WIDTH);
 			}
 		}
+		lines.draw(buffers, pose);
 	}
 
 	/**
@@ -191,7 +226,7 @@ public final class RangeRenderer {
 	}
 
 	/** Gitter auf der Kugel: Äquator kräftig, dazu Breitenkreise und Längslinien schwächer. */
-	private static void grid(VertexConsumer v, PoseStack.Pose pose, ConduitArea conduit, Vec3 camera) {
+	private static void grid(Lines v, PoseStack.Pose pose, ConduitArea conduit, Vec3 camera) {
 		int strong = argb(conduit.color(), 1.0F), faint = argb(conduit.color(), GRID);
 		float cx = (float) (conduit.centerX() - camera.x), cy = (float) (conduit.centerY() - camera.y);
 		float cz = (float) (conduit.centerZ() - camera.z), r = conduit.range();
@@ -212,7 +247,7 @@ public final class RangeRenderer {
 	}
 
 	/** Der Kreis, in dem die Kugel die Höhe des Spielers schneidet - nur in der Nähe, wie bei Beacons. */
-	private static void heightCircle(VertexConsumer v, PoseStack.Pose pose, ConduitArea conduit, double y,
+	private static void heightCircle(Lines v, PoseStack.Pose pose, ConduitArea conduit, double y,
 			double x, double z, Vec3 camera) {
 		double dy = y - conduit.centerY();
 		double r = conduit.range();
@@ -228,7 +263,7 @@ public final class RangeRenderer {
 				(float) radius, argb(conduit.color(), 1.0F), HEIGHT_LINE_WIDTH);
 	}
 
-	private static void circle(VertexConsumer v, PoseStack.Pose pose, float cx, float y, float cz, float radius,
+	private static void circle(Lines v, PoseStack.Pose pose, float cx, float y, float cz, float radius,
 			int color, float width) {
 		for (int j = 0; j < SPHERE_SLICES; j++) {
 			line(v, pose, cx + radius * SLICE_X[j], y, cz + radius * SLICE_Z[j],
@@ -237,7 +272,7 @@ public final class RangeRenderer {
 	}
 
 	/** Die zwölf Kanten eines Quaders. */
-	private static void cube(VertexConsumer v, PoseStack.Pose pose, AABB box, Vec3 camera, int color, float width) {
+	private static void cube(Lines v, PoseStack.Pose pose, AABB box, Vec3 camera, int color, float width) {
 		ring(v, pose, box, box.minY, camera, color, width);
 		ring(v, pose, box, box.maxY, camera, color, width);
 		float y1 = (float) (box.minY - camera.y), y2 = (float) (box.maxY - camera.y);
@@ -302,7 +337,7 @@ public final class RangeRenderer {
 	}
 
 	/** Kanten: unten voll, senkrecht über dem Beacon ausblendend und schwach weiter bis ganz oben. */
-	private static void edges(VertexConsumer v, PoseStack.Pose pose, BeaconArea area, Vec3 camera, boolean full) {
+	private static void edges(Lines v, PoseStack.Pose pose, BeaconArea area, Vec3 camera, boolean full) {
 		AABB box = area.box();
 		int strong = argb(area.color(), 1.0F);
 		int faint = argb(area.color(), full ? 1.0F : FAINT);
@@ -321,7 +356,7 @@ public final class RangeRenderer {
 	}
 
 	/** Waagerechtes Rechteck um den Bereich auf einer Höhe. */
-	private static void ring(VertexConsumer v, PoseStack.Pose pose, AABB box, double y, Vec3 camera, int color, float width) {
+	private static void ring(Lines v, PoseStack.Pose pose, AABB box, double y, Vec3 camera, int color, float width) {
 		float x1 = (float) (box.minX - camera.x), x2 = (float) (box.maxX - camera.x);
 		float z1 = (float) (box.minZ - camera.z), z2 = (float) (box.maxZ - camera.z);
 		float ry = (float) (y - camera.y);
@@ -331,18 +366,55 @@ public final class RangeRenderer {
 		line(v, pose, x1, ry, z2, x1, ry, z1, color, color, width);
 	}
 
-	private static void line(VertexConsumer v, PoseStack.Pose pose, float x1, float y1, float z1,
+	private static void line(Lines v, PoseStack.Pose pose, float x1, float y1, float z1,
 			float x2, float y2, float z2, int from, int to, float width) {
 		float dx = x2 - x1, dy = y2 - y1, dz = z2 - z1;
 		float length = Mth.sqrt(dx * dx + dy * dy + dz * dz);
 		if (length < 1.0E-4F) {
 			return;
 		}
-		dx /= length;
-		dy /= length;
-		dz /= length;
-		v.addVertex(pose, x1, y1, z1).setColor(from).setNormal(pose, dx, dy, dz).setLineWidth(width);
-		v.addVertex(pose, x2, y2, z2).setColor(to).setNormal(pose, dx, dy, dz).setLineWidth(width);
+		v.add(width, x1, y1, z1, x2, y2, z2, from, to);
+	}
+
+	/**
+	 * Sammelt die Linien nach Breite und zeichnet jede Breite in einem Rutsch - ein Wechsel des RenderType schließt den
+	 * vorigen ab, einzeln abwechselnd ginge das nicht.
+	 */
+	private static final class Lines {
+		private final Map<Float, FloatArrayList> points = new LinkedHashMap<>();
+		private final Map<Float, IntArrayList> colors = new LinkedHashMap<>();
+
+		void add(float width, float x1, float y1, float z1, float x2, float y2, float z2, int from, int to) {
+			FloatArrayList p = points.computeIfAbsent(width, w -> new FloatArrayList());
+			p.add(x1);
+			p.add(y1);
+			p.add(z1);
+			p.add(x2);
+			p.add(y2);
+			p.add(z2);
+			IntArrayList c = colors.computeIfAbsent(width, w -> new IntArrayList());
+			c.add(from);
+			c.add(to);
+		}
+
+		void draw(MultiBufferSource buffers, PoseStack.Pose pose) {
+			for (Map.Entry<Float, FloatArrayList> entry : points.entrySet()) {
+				VertexConsumer v = buffers.getBuffer(lineType(entry.getKey()));
+				FloatArrayList p = entry.getValue();
+				IntArrayList c = colors.get(entry.getKey());
+				for (int i = 0, line = 0; i < p.size(); i += 6, line++) {
+					float x1 = p.getFloat(i), y1 = p.getFloat(i + 1), z1 = p.getFloat(i + 2);
+					float x2 = p.getFloat(i + 3), y2 = p.getFloat(i + 4), z2 = p.getFloat(i + 5);
+					float dx = x2 - x1, dy = y2 - y1, dz = z2 - z1;
+					float length = Mth.sqrt(dx * dx + dy * dy + dz * dz);
+					dx /= length;
+					dy /= length;
+					dz /= length;
+					v.addVertex(pose, x1, y1, z1).setColor(c.getInt(line * 2)).setNormal(pose, dx, dy, dz);
+					v.addVertex(pose, x2, y2, z2).setColor(c.getInt(line * 2 + 1)).setNormal(pose, dx, dy, dz);
+				}
+			}
+		}
 	}
 
 	static int argb(int rgb, float alpha) {

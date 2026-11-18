@@ -14,7 +14,7 @@ import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.storage.LevelResource;
-import org.jspecify.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,7 +89,7 @@ public final class PinStore {
 	}
 
 	public static String dimension(Level level) {
-		return level.dimension().identifier().toString();
+		return level.dimension().location().toString();
 	}
 
 	private @Nullable List<Pin> list(Minecraft client, boolean create) {
