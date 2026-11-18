@@ -1,6 +1,6 @@
 # Beacon Range
 
-A client-side Fabric mod for Minecraft 1.21.11, 26.2 and 26.3 that shows exactly where the effects of a beacon - or a conduit - reach.
+A client-side Fabric mod for Minecraft 1.21.4 to 26.3 that shows exactly where the effects of a beacon - or a conduit - reach.
 
 ![All four levels](images/levels.png)
 
@@ -31,7 +31,7 @@ Settings and pins live in `config/KCMods/beaconrange/` (`config.json`, `pins.jso
 
 ## Building
 
-Each Minecraft version has its own folder and branch: `1.21.11` (branch `main`), `26.2` (branch `26.2`) and `26.3` (branch `26.3`).
+Each group of Minecraft versions has its own folder and branch: `1.21.4`, `1.21.5`, `1.21.6` (1.21.6 - 1.21.8), `1.21.9` (1.21.9 - 1.21.10), `1.21.11` (branch `main`), `26.1` (26.1 - 26.1.2), `26.2` and `26.3`. Every branch except `main` is named after its folder.
 
 ```
 ./gradlew build                 # jar in build/libs
