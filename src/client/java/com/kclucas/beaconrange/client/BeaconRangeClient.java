@@ -176,8 +176,8 @@ public class BeaconRangeClient implements ClientModInitializer {
 
 	private static void onClientTick(Minecraft client) {
 		while (settingsKey.consumeClick()) {
-			if (client.gui.screen() == null) {
-				client.gui.setScreen(new BeaconRangeConfigScreen(null));
+			if (client.screen == null) {
+				client.setScreen(new BeaconRangeConfigScreen(null));
 			}
 		}
 

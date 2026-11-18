@@ -194,7 +194,7 @@ public class OnboardingScreen extends Screen {
 	/** Fertig oder übersprungen: In beiden Fällen gilt die installierte Version jeder Mod als gesehen. */
 	private void finish() {
 		Onboarding.markSeen(this.pending.stream().map(Onboarding.Pending::tutorial).toList());
-		this.minecraft.gui.setScreen(this.parent);
+		this.minecraft.setScreen(this.parent);
 	}
 
 	@Override

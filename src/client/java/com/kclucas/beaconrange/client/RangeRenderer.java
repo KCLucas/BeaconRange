@@ -81,7 +81,7 @@ public final class RangeRenderer {
 			});
 		}
 
-		// 26.2: lines() blendet schon und schreibt Tiefe (wie linesTranslucent in 26.3). linesTranslucent schreibt hier
+		// 26.1/26.2: lines() blendet schon und schreibt Tiefe (wie linesTranslucent in 26.3). linesTranslucent schreibt hier
 		// keine Tiefe - dann überdecken Wasser und Glas dahinter die Kanten. Beim Abgleich mit 26.3 nicht zurückdrehen.
 		collector.submitCustomGeometry(poseStack, RenderTypes.lines(), (pose, lines) -> {
 			for (BeaconArea area : areas) {

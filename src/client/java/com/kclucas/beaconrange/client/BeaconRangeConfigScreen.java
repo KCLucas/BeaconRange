@@ -165,7 +165,7 @@ public class BeaconRangeConfigScreen extends Screen {
 	@Override
 	public void onClose() {
 		BeaconRangeClient.getConfig().save();
-		this.minecraft.gui.setScreen(this.parent);
+		this.minecraft.setScreen(this.parent);
 	}
 
 	private class OptionList extends ContainerObjectSelectionList<Row> {
@@ -361,11 +361,11 @@ public class BeaconRangeConfigScreen extends Screen {
 		private void confirmClear() {
 			Minecraft client = BeaconRangeConfigScreen.this.minecraft;
 			int count = BeaconRangeClient.getPins().countWorld(client);
-			client.gui.setScreen(new ConfirmScreen(yes -> {
+			client.setScreen(new ConfirmScreen(yes -> {
 				if (yes) {
 					BeaconRangeClient.getPins().clearWorld(client);
 				}
-				client.gui.setScreen(BeaconRangeConfigScreen.this);
+				client.setScreen(BeaconRangeConfigScreen.this);
 			}, Component.translatable("beaconrange.config.pins.clear.title"),
 					Component.translatable("beaconrange.config.pins.clear.question", count)));
 		}

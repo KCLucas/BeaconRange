@@ -18,7 +18,7 @@ public final class LookInfoHud {
 		Minecraft client = Minecraft.getInstance();
 		BlockPos pos = BeaconRangeClient.getLookedAt();
 		if (pos == null || !BeaconRangeClient.getConfig().lookInfo || BeaconRangeClient.isHidden()
-				|| client.gui.screen() != null) {
+				|| client.screen != null) {
 			return;
 		}
 		int level = BeaconRangeClient.getLookedAtLevel();

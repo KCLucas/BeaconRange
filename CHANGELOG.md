@@ -1,7 +1,7 @@
 # Changelog
 
 ## 2.1.0
-- Made for Minecraft 26.2
+- Made for Minecraft 26.1 - 26.1.2
 - Conduits: look at a conduit to see its range as a sphere - 32 to 96 blocks, depending on its frame. With a full frame a red box shows where it attacks mobs
 - New `/beaconrange pin`: pins the beacon or conduit you look at (the pin key does the same)
 - New lock button next to "Pin range": turn off automatic unpinning on servers that hide blocks (anti-xray shows deepslate instead of your beacon), so your pins stay. Also in the settings
@@ -15,7 +15,6 @@
 - Fixed: a crash while saving could lose all pins, and one broken entry dropped every pin
 - "Unpin all" in the settings asks first; settings are also saved when the screen closes unexpectedly
 - Walls are no longer drawn beyond your render distance, where they glowed through the fog
-- Fixed: walls looked much darker from outside than intended, because both sides were drawn
 
 ## 2.0.1
 - Fixed: the edges of a range stayed fully bright all the way up to the sky - they now fade out above the beacon like the walls

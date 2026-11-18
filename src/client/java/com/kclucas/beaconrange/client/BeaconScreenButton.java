@@ -119,7 +119,7 @@ public final class BeaconScreenButton {
 				.build();
 		Screens.getWidgets(screen).add(lock);
 
-		ScreenEvents.afterForeground(screen).register((s, graphics, mouseX, mouseY, partialTick) -> {
+		ScreenEvents.afterExtract(screen).register((s, graphics, mouseX, mouseY, partialTick) -> {
 			drawLock(graphics, lock);
 			if (client.level == null) {
 				return;

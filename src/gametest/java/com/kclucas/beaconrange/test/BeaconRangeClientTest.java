@@ -156,7 +156,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 				throw new AssertionError("Nach dem Neuaufbau fehlt der Schloss-Knopf");
 			}
 			String pinnedLabel = context.computeOnClient(c -> Component.translatable("beaconrange.button.pinned").getString());
-			if (!context.computeOnClient(c -> Screens.getWidgets(c.gui.screen()).stream()
+			if (!context.computeOnClient(c -> Screens.getWidgets(c.screen).stream()
 					.anyMatch(w -> w.getMessage().getString().equals(pinnedLabel)))) {
 				throw new AssertionError("Nach dem Neuaufbau zeigt der Knopf nicht mehr \"Angepinnt\"");
 			}
@@ -215,7 +215,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 				throw new AssertionError("Versteckter Beacon wurde trotz \"nicht automatisch lösen\" gelöst");
 			}
 			expectVisible(context, MAIN, 4, true);
-			context.runOnClient(c -> c.gui.hud.getChat().clearMessages(false));
+			context.runOnClient(c -> c.gui.getChat().clearMessages(false));
 			command(context, "beaconrange list");
 			context.waitTicks(5);
 			context.takeScreenshot("beaconrange-6b-liste-versteckt"); // "(gerade nicht da)" hinter dem Beacon
@@ -351,7 +351,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 			});
 			server.runCommand("tp @a 0.5 " + GROUND + " -20.5 0 0");
 			context.waitTicks(10);
-			context.runOnClient(c -> c.gui.hud.getChat().clearMessages(false));
+			context.runOnClient(c -> c.gui.getChat().clearMessages(false));
 			command(context, "beaconrange list");
 			context.waitTicks(5);
 			context.takeScreenshot("beaconrange-6-liste");
@@ -380,7 +380,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 			context.getInput().scroll(-20);
 			context.waitTicks(5);
 			context.takeScreenshot("beaconrange-7b-einstellungen-unten");
-			context.runOnClient(c -> c.gui.setScreen(null));
+			context.runOnClient(c -> c.setScreen(null));
 			context.waitTicks(5);
 
 			// 15. Wirkt Minecraft genau im gezeichneten Bereich? Echter Beacon mit Eile, Spieler oben, unten, seitlich.
@@ -418,7 +418,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 		}
 		context.getInput().pressKey(InputConstants.KEY_RIGHT);
 		context.waitTicks(10);
-		if (context.computeOnClient(c -> c.gui.screen() instanceof OnboardingScreen)) {
+		if (context.computeOnClient(c -> c.screen instanceof OnboardingScreen)) {
 			throw new AssertionError("Die Tour sollte nach der letzten Seite geschlossen sein");
 		}
 		if (!read(Onboarding.seenFilePath()).contains("\"beaconrange\": \"" + MOD_VERSION + "\"")) {
@@ -431,13 +431,13 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 		context.waitTicks(5);
 		context.getInput().pressKey(InputConstants.KEY_RIGHT);
 		context.waitTicks(5);
-		if (!context.computeOnClient(c -> c.gui.screen() instanceof OnboardingScreen screen && screen.isNewsStep())) {
+		if (!context.computeOnClient(c -> c.screen instanceof OnboardingScreen screen && screen.isNewsStep())) {
 			throw new AssertionError("Nach dem Update sollte \"Was ist neu\" kommen");
 		}
 		context.takeScreenshot("onboarding-6-was-ist-neu");
 		context.getInput().pressKey(InputConstants.KEY_RIGHT);
 		context.waitTicks(10);
-		if (context.computeOnClient(c -> c.gui.screen() instanceof OnboardingScreen)) {
+		if (context.computeOnClient(c -> c.screen instanceof OnboardingScreen)) {
 			throw new AssertionError("Nach den Neuigkeiten sollte der Screen geschlossen sein");
 		}
 	}
@@ -657,10 +657,10 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 	}
 
 	private static AbstractWidget lockButton(Minecraft client) {
-		if (client.gui.screen() == null) {
+		if (client.screen == null) {
 			return null;
 		}
-		return Screens.getWidgets(client.gui.screen()).stream()
+		return Screens.getWidgets(client.screen).stream()
 				.filter(w -> w.getWidth() == BeaconScreenButton.LOCK_WIDTH && w.getMessage().getString().isEmpty())
 				.findFirst().orElse(null);
 	}
@@ -687,7 +687,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 	/** Warten, bis die Chunks um den Spieler da und gezeichnet sind. */
 	private static void waitForWorld(ClientGameTestContext context, TestSingleplayerContext world) {
 		context.waitTicks(60);
-		world.getConnection().waitForChunksRender(false, 1200);
+		world.getClientLevel().waitForChunksRender(false, 1200);
 	}
 
 	private static void command(ClientGameTestContext context, String command) {
@@ -732,7 +732,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 
 	private static void expectStep(ClientGameTestContext context, int expected) {
 		int actual = context.computeOnClient(c ->
-				c.gui.screen() instanceof OnboardingScreen screen ? screen.getStepIndex() : Integer.MIN_VALUE);
+				c.screen instanceof OnboardingScreen screen ? screen.getStepIndex() : Integer.MIN_VALUE);
 		if (actual != expected) {
 			throw new AssertionError("Tutorial: erwartet Seite " + expected + ", ist aber " + actual);
 		}
@@ -740,18 +740,18 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 
 	/** Wie mit F1: ohne Hotbar, Arm und Fadenkreuz. */
 	private static void screenshotWithoutHud(ClientGameTestContext context, String name) {
-		context.runOnClient(c -> { if (!c.gui.hud.isHidden()) c.gui.hud.toggle(); });
+		context.runOnClient(c -> c.options.hideGui = true);
 		context.waitTicks(2);
 		context.takeScreenshot(name);
-		context.runOnClient(c -> { if (c.gui.hud.isHidden()) c.gui.hud.toggle(); });
+		context.runOnClient(c -> c.options.hideGui = false);
 	}
 
 	/** Statusmeldungen ausblenden lassen, Chat und Toasts leeren - für aufgeräumte Screenshots. */
 	private static void calm(ClientGameTestContext context) {
 		context.waitTicks(60);
 		context.runOnClient(c -> {
-			c.gui.hud.getChat().clearMessages(false);
-			c.gui.toastManager().clear();
+			c.gui.getChat().clearMessages(false);
+			c.getToastManager().clear();
 		});
 		context.waitTicks(5);
 	}
