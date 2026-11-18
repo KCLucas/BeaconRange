@@ -5,9 +5,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -203,8 +201,8 @@ public class OnboardingScreen extends Screen {
 	}
 
 	@Override
-	public boolean keyPressed(KeyEvent event) {
-		switch (event.key()) {
+	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+		switch (keyCode) {
 			case InputConstants.KEY_RIGHT, InputConstants.KEY_RETURN, InputConstants.KEY_NUMPADENTER -> {
 				if (this.index >= 0 || selectedCount() > 0) {
 					next();
@@ -216,19 +214,19 @@ public class OnboardingScreen extends Screen {
 				return true;
 			}
 			default -> {
-				return super.keyPressed(event);
+				return super.keyPressed(keyCode, scanCode, modifiers);
 			}
 		}
 	}
 
 	@Override
-	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-		if (super.mouseClicked(event, doubleClick)) {
+	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+		if (super.mouseClicked(mouseX, mouseY, button)) {
 			return true;
 		}
 		// Auf der Übersicht wählt ein Klick auf eine Mod-Karte sie an oder ab.
-		if (this.index < 0 && this.pending.size() > 1 && event.button() == InputConstants.MOUSE_BUTTON_LEFT) {
-			int card = cardAt(event.x(), event.y());
+		if (this.index < 0 && this.pending.size() > 1 && button == InputConstants.MOUSE_BUTTON_LEFT) {
+			int card = cardAt(mouseX, mouseY);
 			if (card >= 0) {
 				this.selected[card] = !this.selected[card];
 				rebuildWidgets();
@@ -250,9 +248,18 @@ public class OnboardingScreen extends Screen {
 
 	// ---- Zeichnen ----
 
+	/**
+	 * In 1.21.4 zeichnet Screen.render selbst den Hintergrund und gleich danach die Knöpfe - die Abdunklung gehört
+	 * dazwischen, wie ab 1.21.6 (dort kommt der Hintergrund vor render).
+	 */
+	@Override
+	public void renderBackground(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+		super.renderBackground(graphics, mouseX, mouseY, partialTick);
+		graphics.fill(0, 0, this.width, this.height, COLOR_DIM);
+	}
+
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-		graphics.fill(0, 0, this.width, this.height, COLOR_DIM);
 		super.render(graphics, mouseX, mouseY, partialTick);
 		if (this.index < 0) {
 			renderWelcome(graphics, mouseX, mouseY);
@@ -404,7 +411,7 @@ public class OnboardingScreen extends Screen {
 			y = top + Math.max(0, (bottom - top - used) / 2);
 			int imageX = (this.width - imageWidth) / 2;
 			graphics.fill(imageX - 1, y - 1, imageX + imageWidth + 1, y + imageHeight + 1, COLOR_BORDER);
-			graphics.blit(RenderPipelines.GUI_TEXTURED, page.image(), imageX, y, 0.0F, 0.0F, imageWidth, imageHeight,
+			graphics.blit(RenderType::guiTextured, page.image(), imageX, y, 0.0F, 0.0F, imageWidth, imageHeight,
 					IMAGE_TEXTURE_WIDTH, IMAGE_TEXTURE_HEIGHT, IMAGE_TEXTURE_WIDTH, IMAGE_TEXTURE_HEIGHT);
 			y += imageHeight + 12;
 		} else {
@@ -472,15 +479,15 @@ public class OnboardingScreen extends Screen {
 	}
 
 	private void drawIcon(GuiGraphics graphics, ResourceLocation icon, int x, int y, int size) {
-		graphics.blit(RenderPipelines.GUI_TEXTURED, icon, x, y, 0.0F, 0.0F, size, size,
+		graphics.blit(RenderType::guiTextured, icon, x, y, 0.0F, 0.0F, size, size,
 				ICON_TEXTURE_SIZE, ICON_TEXTURE_SIZE, ICON_TEXTURE_SIZE, ICON_TEXTURE_SIZE);
 	}
 
 	private void drawScaledCentered(GuiGraphics graphics, Component text, int centerX, int y, float scale, int color) {
-		graphics.pose().pushMatrix();
-		graphics.pose().translate(centerX, y);
-		graphics.pose().scale(scale, scale);
+		graphics.pose().pushPose();
+		graphics.pose().translate(centerX, y, 0.0F);
+		graphics.pose().scale(scale, scale, 1.0F);
 		graphics.drawCenteredString(this.font, text, 0, 0, color);
-		graphics.pose().popMatrix();
+		graphics.pose().popPose();
 	}
 }

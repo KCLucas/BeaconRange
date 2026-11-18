@@ -528,7 +528,7 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 		server.runCommand(tp);
 		context.waitTicks(100); // Beacons wirken alle 80 Ticks, Conduits alle 40
 		boolean vanilla = server.computeOnServer(s -> s.getPlayerList().getPlayers().getFirst()
-				.hasEffect(effect.equals("haste") ? MobEffects.HASTE : MobEffects.CONDUIT_POWER));
+				.hasEffect(effect.equals("haste") ? MobEffects.DIG_SPEED : MobEffects.CONDUIT_POWER));
 		if (drawn != expected || vanilla != expected) {
 			throw new AssertionError(effect + " bei " + x + " " + y + " " + z + ": erwartet " + expected + ", gezeichnet " + drawn
 					+ ", Minecraft " + vanilla);
@@ -586,7 +586,8 @@ public class BeaconRangeClientTest implements FabricClientGameTest {
 	 */
 	private static void saveWorldForManualTest(ClientGameTestContext context, TestServerContext server) {
 		lookFrom(context, server, 34.5, GROUND + 9, -78.5, MAIN);
-		server.runCommand("save-all flush");
+		// Wie "save-all flush" - den Befehl gibt es in 1.21.4 nur auf dedizierten Servern.
+		server.runOnServer(s -> s.saveEverything(true, true, true));
 		context.waitTicks(20);
 		Path source = server.computeOnServer(s -> s.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize());
 		// Spiel-Ordner des Tests ist build/run/clientGameTest, der von runClient ist run/ im Projekt.

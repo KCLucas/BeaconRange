@@ -6,8 +6,8 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+import net.fabricmc.fabric.api.client.rendering.v1.HudLayerRegistrationCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.IdentifiedLayer;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.ChatFormatting;
@@ -38,8 +38,8 @@ public class BeaconRangeClient implements ClientModInitializer {
 	/** So weit reicht "Anschauen": ein Beacon in Sichtweite zeigt seinen Bereich, nicht nur in Griffweite. */
 	public static final double LOOK_DISTANCE = 96.0;
 
-	private static final KeyMapping.Category CATEGORY =
-			KeyMapping.Category.register(ResourceLocation.fromNamespaceAndPath(MOD_ID, "main"));
+	/** In 1.21.4 ist die Kategorie nur der Übersetzungsschlüssel - derselbe wie bei KeyMapping.Category ab 1.21.9. */
+	private static final String CATEGORY = "key.category." + MOD_ID + ".main";
 
 	private static KeyMapping pinKey;
 	private static KeyMapping toggleKey;
@@ -118,10 +118,10 @@ public class BeaconRangeClient implements ClientModInitializer {
 				"key.beaconrange.settings", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
 
 		ClientTickEvents.END_CLIENT_TICK.register(BeaconRangeClient::onClientTick);
-		// Gezeichnet wird aus mixin.LevelRendererMixin (vor dem durchsichtigen Gelände) - Fabric API für 1.21.9 hat
-		// kein WorldRenderEvents.
-		HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR,
-				ResourceLocation.fromNamespaceAndPath(MOD_ID, "look_info"), LookInfoHud::render);
+		// Gezeichnet wird aus mixin.LevelRendererMixin (vor und nach dem durchsichtigen Gelände) - Fabric API für
+		// 1.21.4 hat kein WorldRenderEvents.BEFORE_TRANSLUCENT.
+		HudLayerRegistrationCallback.EVENT.register(layers -> layers.attachLayerAfter(IdentifiedLayer.CROSSHAIR,
+				ResourceLocation.fromNamespaceAndPath(MOD_ID, "look_info"), LookInfoHud::render));
 		ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
 				BeaconRangeCommands.register(dispatcher));
 		ScreenEvents.AFTER_INIT.register(BeaconScreenButton::afterInit);

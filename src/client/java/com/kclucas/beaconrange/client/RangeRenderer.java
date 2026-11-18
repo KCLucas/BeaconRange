@@ -1,16 +1,15 @@
 package com.kclucas.beaconrange.client;
 
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import it.unimi.dsi.fastutil.floats.FloatArrayList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
@@ -53,19 +52,18 @@ public final class RangeRenderer {
 
 	/**
 	 * Wände: genau wie debugFilledBox in 1.21.11 - Vierecke, halbtransparent, Rückseiten weggelassen und ohne in den
-	 * Tiefenpuffer zu schreiben. In 1.21.9 zeichnet debugFilledBox Dreiecksstreifen und schreibt die Tiefe: Kanten
+	 * Tiefenpuffer zu schreiben. In 1.21.4 zeichnet debugFilledBox Dreiecksstreifen und schreibt die Tiefe: Kanten
 	 * und Kugelgitter hinter einer Wand würden verschwinden.
 	 */
-	private static final RenderPipeline WALLS_PIPELINE = RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
-			.withLocation(ResourceLocation.fromNamespaceAndPath(BeaconRangeClient.MOD_ID, "pipeline/walls"))
-			.withDepthWrite(false)
-			.build();
-	private static final RenderType WALLS = RenderType.create("beaconrange_walls", 1536, false, true,
-			WALLS_PIPELINE, RenderType.CompositeState.builder()
+	private static final RenderType WALLS = RenderType.create("beaconrange_walls", DefaultVertexFormat.POSITION_COLOR,
+			VertexFormat.Mode.QUADS, 1536, false, true, RenderType.CompositeState.builder()
+					.setShaderState(RenderStateShard.POSITION_COLOR_SHADER)
 					.setLayeringState(RenderStateShard.VIEW_OFFSET_Z_LAYERING)
+					.setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
+					.setWriteMaskState(RenderStateShard.COLOR_WRITE)
 					.createCompositeState(false));
 	/**
-	 * Linien wie RenderType.lines(), aber mit fester Breite: in 1.21.9 gibt es noch keine Breite pro Linie
+	 * Linien wie RenderType.lines(), aber mit fester Breite: in 1.21.4 gibt es noch keine Breite pro Linie
 	 * (setLineWidth kam mit 1.21.11), sie hängt am RenderType.
 	 */
 	private static final Map<Float, RenderType> LINE_TYPES = new LinkedHashMap<>();
@@ -74,11 +72,15 @@ public final class RangeRenderer {
 	}
 
 	private static RenderType lineType(float width) {
-		return LINE_TYPES.computeIfAbsent(width, w -> RenderType.create("beaconrange_lines_" + w, 1536,
-				RenderPipelines.LINES, RenderType.CompositeState.builder()
+		return LINE_TYPES.computeIfAbsent(width, w -> RenderType.create("beaconrange_lines_" + w,
+				DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.LINES, 1536, RenderType.CompositeState.builder()
+						.setShaderState(RenderStateShard.RENDERTYPE_LINES_SHADER)
 						.setLineState(new RenderStateShard.LineStateShard(OptionalDouble.of(w)))
 						.setLayeringState(RenderStateShard.VIEW_OFFSET_Z_LAYERING)
+						.setTransparencyState(RenderStateShard.TRANSLUCENT_TRANSPARENCY)
 						.setOutputState(RenderStateShard.ITEM_ENTITY_TARGET)
+						.setWriteMaskState(RenderStateShard.COLOR_DEPTH_WRITE)
+						.setCullState(RenderStateShard.NO_CULL)
 						.createCompositeState(false)));
 	}
 

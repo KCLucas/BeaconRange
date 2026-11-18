@@ -110,8 +110,8 @@ public final class BeaconRangeCommands {
 		}
 		MutableComponent unpin = Component.literal(" [✖]").withStyle(style -> style
 				.withColor(ChatFormatting.RED)
-				.withClickEvent(new ClickEvent.RunCommand("/beaconrange remove " + text(pos)))
-				.withHoverEvent(new HoverEvent.ShowText(
+				.withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/beaconrange remove " + text(pos)))
+				.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
 						Component.translatable("beaconrange.command.list.unpin").withStyle(ChatFormatting.RED))));
 		return line.append(unpin);
 	}

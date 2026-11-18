@@ -24,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -173,6 +174,10 @@ public class BeaconRangeConfigScreen extends Screen {
 		this.minecraft.setScreen(this.parent);
 	}
 
+	/**
+	 * Die Liste mit Zeilen verschiedener Höhe (Überschriften sind niedriger). In 1.21.4 kennt die Liste nur eine feste
+	 * Zeilenhöhe, deshalb rechnen wir die Lage jeder Zeile selbst aus - genau wie die Liste ab 1.21.9.
+	 */
 	private class OptionList extends ContainerObjectSelectionList<Row> {
 
 		OptionList(Minecraft minecraft, int width, HeaderAndFooterLayout layout) {
@@ -180,7 +185,7 @@ public class BeaconRangeConfigScreen extends Screen {
 		}
 
 		void add(Row row) {
-			addEntry(row, row.height());
+			addEntry(row);
 		}
 
 		@Override
@@ -188,9 +193,83 @@ public class BeaconRangeConfigScreen extends Screen {
 			return Math.min(this.width - 40, 440);
 		}
 
+		/** Wie ab 1.21.9 acht Pixel rechts neben den Zeilen - dort beginnen die Zeilen zwei Pixel weiter links. */
 		@Override
 		protected int scrollBarX() {
-			return getRowRight() + 8;
+			return getRowRight() + 6;
+		}
+
+		@Override
+		protected int contentHeight() {
+			int height = 4;
+			for (Row row : children()) {
+				height += row.height();
+			}
+			return height;
+		}
+
+		@Override
+		public int getRowTop(int index) {
+			int y = getY() + 2 - (int) scrollAmount();
+			for (int i = 0; i < index; i++) {
+				y += getEntry(i).height();
+			}
+			return y;
+		}
+
+		@Override
+		public int getRowBottom(int index) {
+			return getRowTop(index) + getEntry(index).height();
+		}
+
+		/** Jede Zeile bekommt ihre Lage; danach zeichnen wir die sichtbaren selbst (die Vorlage nimmt die feste Höhe). */
+		private void positionRows() {
+			int y = getRowTop(0);
+			for (Row row : children()) {
+				row.setBounds(getRowLeft() - 2, y, getRowWidth(), row.height());
+				y += row.height();
+			}
+		}
+
+		private @Nullable Row rowAt(double mouseX, double mouseY) {
+			if (!isMouseOver(mouseX, mouseY)) {
+				return null;
+			}
+			positionRows();
+			for (Row row : children()) {
+				if (row.isMouseOver(mouseX, mouseY)) {
+					return row;
+				}
+			}
+			return null;
+		}
+
+		@Override
+		public Optional<GuiEventListener> getChildAt(double mouseX, double mouseY) {
+			return Optional.ofNullable(rowAt(mouseX, mouseY));
+		}
+
+		@Override
+		protected void renderListItems(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+			Row hovered = rowAt(mouseX, mouseY);
+			positionRows();
+			for (Row row : children()) {
+				if (row.y + row.height >= getY() && row.y <= getBottom()) {
+					row.renderContent(graphics, mouseX, mouseY, row == hovered, partialTick);
+				}
+			}
+		}
+
+		/** Mit der Tastatur angesteuerte Zeile ganz ins Bild holen. */
+		@Override
+		protected void ensureVisible(Row row) {
+			int index = children().indexOf(row);
+			int top = getRowTop(index), bottom = getRowBottom(index);
+			if (top < getY()) {
+				setScrollAmount(scrollAmount() + top - getY());
+			} else if (bottom > getBottom()) {
+				setScrollAmount(scrollAmount() + bottom - getBottom());
+			}
 		}
 	}
 
@@ -215,8 +294,63 @@ public class BeaconRangeConfigScreen extends Screen {
 		}
 	}
 
+	/**
+	 * Eine Zeile mit eigener Lage und Höhe - die Maße des Inhalts wie bei AbstractSelectionList.Entry ab 1.21.9
+	 * (zwei Pixel Rand rundherum).
+	 */
 	private abstract static class Row extends ContainerObjectSelectionList.Entry<Row> {
+		private int x, y, width, height;
+
 		abstract int height();
+
+		abstract void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float partialTick);
+
+		void setBounds(int x, int y, int width, int height) {
+			this.x = x;
+			this.y = y;
+			this.width = width;
+			this.height = height;
+		}
+
+		/** Gezeichnet wird über {@link OptionList#renderListItems} mit den eigenen Maßen. */
+		@Override
+		public final void render(GuiGraphics graphics, int index, int top, int left, int width, int height,
+				int mouseX, int mouseY, boolean hovered, float partialTick) {
+			renderContent(graphics, mouseX, mouseY, hovered, partialTick);
+		}
+
+		@Override
+		public boolean isMouseOver(double mouseX, double mouseY) {
+			return mouseX >= this.x && mouseX < this.x + this.width && mouseY >= this.y && mouseY < this.y + this.height;
+		}
+
+		int getContentX() {
+			return this.x + 2;
+		}
+
+		int getContentY() {
+			return this.y + 2;
+		}
+
+		int getContentWidth() {
+			return this.width - 4;
+		}
+
+		int getContentHeight() {
+			return this.height - 4;
+		}
+
+		int getContentRight() {
+			return getContentX() + getContentWidth();
+		}
+
+		int getContentBottom() {
+			return getContentY() + getContentHeight();
+		}
+
+		int getContentXMiddle() {
+			return getContentX() + getContentWidth() / 2;
+		}
 	}
 
 	/** Überschrift eines Abschnitts: Titel in der Akzentfarbe, links und rechts eine auslaufende Linie. */
@@ -233,7 +367,7 @@ public class BeaconRangeConfigScreen extends Screen {
 		}
 
 		@Override
-		public void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
+		void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
 			Font font = BeaconRangeConfigScreen.this.font;
 			int textWidth = font.width(this.title);
 			int centerX = getContentXMiddle();
@@ -335,7 +469,7 @@ public class BeaconRangeConfigScreen extends Screen {
 		}
 
 		@Override
-		public void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
+		void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
 			renderOption(this, graphics, this.label, this.description, this.showButton, null,
 					mouseX, mouseY, hovered, partialTick);
 		}
@@ -348,11 +482,6 @@ public class BeaconRangeConfigScreen extends Screen {
 		@Override
 		public List<? extends NarratableEntry> narratables() {
 			return List.of(this.showButton);
-		}
-
-		@Override
-		public void visitWidgets(Consumer<AbstractWidget> consumer) {
-			consumer.accept(this.showButton);
 		}
 	}
 
@@ -381,7 +510,7 @@ public class BeaconRangeConfigScreen extends Screen {
 		}
 
 		@Override
-		public void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
+		void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
 			Minecraft client = BeaconRangeConfigScreen.this.minecraft;
 			PinStore pins = BeaconRangeClient.getPins();
 			Component description;
@@ -405,11 +534,6 @@ public class BeaconRangeConfigScreen extends Screen {
 		@Override
 		public List<? extends NarratableEntry> narratables() {
 			return List.of(this.clearButton);
-		}
-
-		@Override
-		public void visitWidgets(Consumer<AbstractWidget> consumer) {
-			consumer.accept(this.clearButton);
 		}
 	}
 
@@ -451,7 +575,7 @@ public class BeaconRangeConfigScreen extends Screen {
 		}
 
 		@Override
-		public void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
+		void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
 			renderOption(this, graphics, this.label, this.description.apply(this.control.getValue()),
 					this.control, this.resetButton, mouseX, mouseY, hovered, partialTick);
 		}
@@ -464,12 +588,6 @@ public class BeaconRangeConfigScreen extends Screen {
 		@Override
 		public List<? extends NarratableEntry> narratables() {
 			return List.of(this.control, this.resetButton);
-		}
-
-		@Override
-		public void visitWidgets(Consumer<AbstractWidget> consumer) {
-			consumer.accept(this.control);
-			consumer.accept(this.resetButton);
 		}
 	}
 }

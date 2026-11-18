@@ -7,7 +7,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.block.BeaconBeamBlock;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.entity.BeaconBeamOwner;
 import net.minecraft.world.level.block.entity.BeaconBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -98,7 +97,7 @@ public final class Beacons {
 	/** Farbe des Strahls oben am Himmel (gefärbt durch Glas darüber) als RGB, oder null ohne Strahl. */
 	public static @Nullable Integer beamColor(Level level, BlockPos pos) {
 		if (level.getBlockEntity(pos) instanceof BeaconBlockEntity beacon) {
-			List<BeaconBeamOwner.Section> sections = beacon.getBeamSections();
+			List<BeaconBlockEntity.BeaconBeamSection> sections = beacon.getBeamSections();
 			if (!sections.isEmpty()) {
 				return sections.getLast().getColor() & 0xFFFFFF;
 			}
